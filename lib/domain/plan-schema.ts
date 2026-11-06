@@ -34,6 +34,12 @@ const EXPECTED_KEYS = [
   "priorities",
 ] as const;
 
+const C0_OR_C1_CONTROL = /[\u0000-\u001f\u007f-\u009f]/u;
+const DEFAULT_IGNORABLE = new RegExp("\\p{Default_Ignorable_Code_Point}", "u");
+const EXTENDED_PICTOGRAPHIC = new RegExp("\\p{Extended_Pictographic}", "u");
+const WHITE_SPACE = new RegExp("\\p{White_Space}", "gu");
+const EMOJI_VARIATION_SELECTORS = new Set(["\ufe0e", "\ufe0f"]);
+
 function invalid(path: PlanValidationPath, message: string): never {
   throw new PlanValidationError(message, path);
 }
@@ -42,16 +48,45 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Removes format code points that do not contribute visible content while
+ * retaining emoji presentation and composition that changes what is shown.
+ */
+function visibleTextKey(text: string): string {
+  const codePoints = Array.from(text);
+  return codePoints
+    .filter((codePoint, index) => {
+      if (!DEFAULT_IGNORABLE.test(codePoint)) return true;
+
+      const previous = codePoints[index - 1];
+      const next = codePoints[index + 1];
+      if (codePoint === "\u200d") {
+        return previous !== undefined &&
+          next !== undefined &&
+          EXTENDED_PICTOGRAPHIC.test(previous) &&
+          EXTENDED_PICTOGRAPHIC.test(next);
+      }
+      return EMOJI_VARIATION_SELECTORS.has(codePoint) &&
+        previous !== undefined &&
+        EXTENDED_PICTOGRAPHIC.test(previous);
+    })
+    .join("")
+    .trim();
+}
+
 function parseText(
   value: unknown,
   path: PlanValidationPath,
   maximumCodePoints: number,
 ): string {
   if (typeof value !== "string") invalid(path, `${path} must be a string`);
+  if (C0_OR_C1_CONTROL.test(value)) {
+    invalid(path, `${path} must not contain C0 or C1 control characters`);
+  }
 
   const text = value.trim();
   const codePointLength = Array.from(text).length;
-  if (codePointLength === 0) invalid(path, `${path} must not be empty`);
+  if (visibleTextKey(text).length === 0) invalid(path, `${path} must not be empty`);
   if (codePointLength > maximumCodePoints) {
     invalid(path, `${path} must be at most ${maximumCodePoints} Unicode code points`);
   }
@@ -60,10 +95,16 @@ function parseText(
 
 /**
  * Produces the deterministic duplicate-comparison key: trim, normalize to
- * Unicode NFKC, then apply locale-independent Unicode lowercase conversion.
+ * Unicode NFKC, remove non-visible default-ignorable format code points (but
+ * retain meaningful emoji ZWJ/variation sequences), remove whitespace to make
+ * the anti-spoof comparison insensitive to visible versus zero-width word
+ * separation, then apply JavaScript's locale-independent Unicode lowercase
+ * conversion. This is deliberately not full Unicode case folding.
  */
 export function normalizePriorityText(text: string): string {
-  return text.trim().normalize("NFKC").toLowerCase();
+  return visibleTextKey(text.trim().normalize("NFKC"))
+    .replace(WHITE_SPACE, "")
+    .toLowerCase();
 }
 
 /**

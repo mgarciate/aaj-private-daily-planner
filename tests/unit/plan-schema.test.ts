@@ -20,7 +20,7 @@ describe("daily plan schema", () => {
   it("trims valid provider text and assigns stable ordered priority IDs", () => {
     expect(
       parsePlanCandidate({
-        priorities: ["  First  ", "\nSecond\t", " Third "],
+        priorities: ["  First  ", " Second ", " Third "],
         blocker: "  Blocker  ",
         firstStep: "  First step  ",
         encouragement: "  Keep going.  ",
@@ -68,12 +68,56 @@ describe("daily plan schema", () => {
   });
 
   it.each([
+    ["priority", { ...validCandidate, priorities: ["one", "\u200b\u2060", "three"] }],
+    ["blocker", { ...validCandidate, blocker: " \u200b\u2060 " }],
+    ["firstStep", { ...validCandidate, firstStep: "\u200b" }],
+    ["encouragement", { ...validCandidate, encouragement: "\u2060" }],
+  ])("rejects a default-ignorable-only %s", (_label, candidate) => {
+    expect(() => parsePlanCandidate(candidate)).toThrow(PlanValidationError);
+  });
+
+  it.each([
+    ["priority", { ...validCandidate, priorities: ["one", "two\u0000", "three"] }],
+    ["blocker", { ...validCandidate, blocker: "blocked\u0085" }],
+    ["firstStep", { ...validCandidate, firstStep: "open\nfile" }],
+    ["encouragement", { ...validCandidate, encouragement: "go\t" }],
+  ])("rejects C0/C1 controls in %s", (_label, candidate) => {
+    expect(() => parsePlanCandidate(candidate)).toThrow(PlanValidationError);
+  });
+
+  it.each([
     ["case and surrounding whitespace", ["Call Sam", " call sam ", "Walk"]],
     ["Unicode normalization and case", ["Café", "CAFE\u0301", "Walk"]],
+    ["visible versus zero-width word separation", ["Call Sam", "Call\u200bSam", "Walk"]],
+    ["inserted default-ignorable text", ["CallSam", "CallS\u200bam", "Walk"]],
   ])("rejects duplicate priorities after %s normalization", (_label, priorities) => {
     expect(() => parsePlanCandidate({ ...validCandidate, priorities })).toThrow(
       PlanValidationError,
     );
+  });
+
+  it("preserves meaningful emoji composition in duplicate comparison", () => {
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: ["Plan 👩‍💻 session", "Plan 👩💻 session", "Review ✈ route"],
+      }),
+    ).not.toThrow();
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: ["Review ✈️ route", "Review ✈ route", "Walk"],
+      }),
+    ).not.toThrow();
+  });
+
+  it("uses lowercase comparison rather than full Unicode case folding", () => {
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: ["Straße", "STRASSE", "Walk"],
+      }),
+    ).not.toThrow();
   });
 
   it("counts Unicode code points rather than UTF-16 code units", () => {

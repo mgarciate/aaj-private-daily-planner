@@ -219,7 +219,7 @@ Paths remain planned until scaffold creation. If the selected framework version 
 
 1. Write failing tests for call order, transcript delimiting, exact success response, transcription failure, planning failure, malformed output, evidence absence, and retry evidence policy.
 2. Run focused tests; expect FAIL.
-3. Implement the minimum orchestration using dependency injection for the tested adapter.
+3. Implement the minimum orchestration using dependency injection for the tested adapter. Every planner candidate MUST pass through `parsePlanCandidate` before orchestration can return success; the existing planner verifier's weaker contract check is observation tooling and MUST NOT be final orchestration validation.
 4. Run focused, unit, and live opt-in contract suites.
 5. Commit: `feat: orchestrate 0G voice planning`.
 
