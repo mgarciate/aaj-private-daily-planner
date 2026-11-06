@@ -193,11 +193,17 @@ Server validation is authoritative.
 | `transcript` | Trimmed, non-empty, bounded to a documented maximum before planning |
 | `priorities` | Array length exactly 3; no duplicate normalized text |
 | priority `id` | Reassigned by Aaj to exactly `p1`, `p2`, `p3`; never treated as provider evidence |
-| priority `text` | Trimmed, non-empty, single actionable item, proposed 1–160 Unicode characters |
-| `blocker` | Trimmed, non-empty, proposed 1–200 characters |
-| `firstStep` | Trimmed, non-empty, one action, proposed 1–160 characters |
-| `encouragement` | Trimmed, non-empty, one short sentence, proposed 1–140 characters |
+| priority `text` | Trimmed, non-empty, single actionable item, 1–160 Unicode code points |
+| `blocker` | Trimmed, non-empty, 1–200 Unicode code points |
+| `firstStep` | Trimmed, non-empty, one action, 1–160 Unicode code points |
+| `encouragement` | Trimmed, non-empty, one short sentence, 1–140 Unicode code points |
 | request ID | Non-empty string from an allowlisted observed provider field/header; maximum length set after observation |
+
+“Single actionable item,” “one action,” and “one short sentence” are planner-generation semantics, enforced by the planning instruction and evaluated in planner quality tests; the deterministic parser does not attempt natural-language classification. Parser enforcement covers exact types and fields, trimming, cardinality, Unicode-code-point length, visible non-emptiness, control-character rejection, and normalized duplicate priorities.
+
+Plan text MUST NOT contain C0 or C1 control characters. For visible non-emptiness and priority duplicate comparison, default-ignorable format code points that add no visible content are ignored. Emoji composition remains meaningful: a zero-width joiner is preserved when its right side is an immediate Extended Pictographic base and its left side reaches an Extended Pictographic base past only emoji modifiers or variation selectors; an emoji variation selector modifying an Extended Pictographic character is preserved; and only the exact currently recognized RGI subdivision flags are preserved: BLACK FLAG (`U+1F3F4`) followed by the lowercase tag-letter encoding of `gbeng`, `gbsct`, or `gbwls` (`U+E0061`–`U+E007A`), then `CANCEL TAG` (`U+E007F`). Arbitrary pictographic tag sequences, tag spaces, uppercase tag letters, arbitrary black-flag tags, missing terminators, and unattached tags remain ignorable. Thus a zero-width-only field is empty and an inserted zero-width character cannot make otherwise identical textual priorities distinct, while qualified joined, presentation-selected, and allowlisted subdivision-flag forms remain distinguishable.
+
+Duplicate comparison is trim + NFKC + the visibility policy above + removal of whitespace + JavaScript's locale-independent Unicode lowercase conversion. Removing whitespace makes the anti-spoof comparison conservatively treat visible, absent, and zero-width word separation alike (for example, `Call Sam` and `Call\u200BSam`). It is intentionally not full Unicode case folding; for example, `Straße` and `STRASSE` are distinct comparison keys.
 
 The validator MUST reject additional priorities, missing fields, wrong types, empty strings, and text beyond final limits. It MUST NOT silently drop a fourth priority, combine priorities, or substitute invented content.
 

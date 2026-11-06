@@ -146,9 +146,11 @@ Paths remain planned until scaffold creation. If the selected framework version 
 
 ### Task 1.1: Define the exact plan schema
 
+**Status:** Completed 2026-11-06. The dependency-free domain parser enforces exact fields and cardinality, final Unicode-code-point limits, normalized duplicate rejection, trimmed output, and stable `p1`–`p3` assignment.
+
 **Objective:** Encode the cardinality and length rules before orchestration.
 
-**Future files:**
+**Files:**
 
 - Create: `lib/domain/plan-types.ts`
 - Create: `lib/domain/plan-schema.ts`
@@ -217,7 +219,7 @@ Paths remain planned until scaffold creation. If the selected framework version 
 
 1. Write failing tests for call order, transcript delimiting, exact success response, transcription failure, planning failure, malformed output, evidence absence, and retry evidence policy.
 2. Run focused tests; expect FAIL.
-3. Implement the minimum orchestration using dependency injection for the tested adapter.
+3. Implement the minimum orchestration using dependency injection for the tested adapter. Every planner candidate MUST pass through `parsePlanCandidate` before orchestration can return success; the existing planner verifier's weaker contract check is observation tooling and MUST NOT be final orchestration validation.
 4. Run focused, unit, and live opt-in contract suites.
 5. Commit: `feat: orchestrate 0G voice planning`.
 
