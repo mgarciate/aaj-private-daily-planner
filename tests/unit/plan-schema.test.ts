@@ -138,17 +138,44 @@ describe("daily plan schema", () => {
     ).toThrow(PlanValidationError);
   });
 
-  it("preserves a complete emoji tag sequence in duplicate keys", () => {
+  it.each([
+    ["England", "\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}"],
+    ["Scotland", "\u{e0067}\u{e0062}\u{e0073}\u{e0063}\u{e0074}\u{e007f}"],
+    ["Wales", "\u{e0067}\u{e0062}\u{e0077}\u{e006c}\u{e0073}\u{e007f}"],
+  ])("preserves the RGI subdivision flag for %s in duplicate keys", (_label, tags) => {
     const blackFlag = "\u{1f3f4}";
-    const englandFlag = `${blackFlag}\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}`;
+    const subdivisionFlag = `${blackFlag}${tags}`;
 
-    expect(normalizePriorityText(englandFlag)).not.toBe(normalizePriorityText(blackFlag));
+    expect(normalizePriorityText(subdivisionFlag)).not.toBe(normalizePriorityText(blackFlag));
     expect(() =>
       parsePlanCandidate({
         ...validCandidate,
-        priorities: [`Visit ${englandFlag}`, `Visit ${blackFlag}`, "Walk"],
+        priorities: [`Visit ${subdivisionFlag}`, `Visit ${blackFlag}`, "Walk"],
       }),
     ).not.toThrow();
+  });
+
+  it.each([
+    ["a non-flag pictograph", "\u{1f469}\u{e0078}\u{e007f}", "\u{1f469}"],
+    ["a tag space", "\u{1f3f4}\u{e0020}\u{e007f}", "\u{1f3f4}"],
+    [
+      "uppercase TAG GBENG",
+      "\u{1f3f4}\u{e0047}\u{e0042}\u{e0045}\u{e004e}\u{e0047}\u{e007f}",
+      "\u{1f3f4}",
+    ],
+    [
+      "an arbitrary lowercase black-flag tag",
+      "\u{1f3f4}\u{e0067}\u{e0062}\u{e0078}\u{e0078}\u{e0078}\u{e007f}",
+      "\u{1f3f4}",
+    ],
+  ])("ignores %s even when terminated", (_label, tagged, base) => {
+    expect(normalizePriorityText(tagged)).toBe(normalizePriorityText(base));
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: [`Visit ${tagged}`, `Visit ${base}`, "Walk"],
+      }),
+    ).toThrow(PlanValidationError);
   });
 
   it("ignores incomplete and unattached emoji tag code points", () => {

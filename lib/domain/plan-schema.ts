@@ -40,9 +40,12 @@ const EXTENDED_PICTOGRAPHIC = new RegExp("\\p{Extended_Pictographic}", "u");
 const EMOJI_MODIFIER = new RegExp("\\p{Emoji_Modifier}", "u");
 const WHITE_SPACE = new RegExp("\\p{White_Space}", "gu");
 const EMOJI_VARIATION_SELECTORS = new Set(["\ufe0e", "\ufe0f"]);
-const CANCEL_TAG = 0xe007f;
-const FIRST_EMOJI_TAG_CHARACTER = 0xe0020;
-const LAST_EMOJI_TAG_CHARACTER = 0xe007e;
+const BLACK_FLAG = "\u{1f3f4}";
+const RGI_SUBDIVISION_FLAG_TAG_SEQUENCES = [
+  Array.from("\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}"), // gbeng
+  Array.from("\u{e0067}\u{e0062}\u{e0073}\u{e0063}\u{e0074}\u{e007f}"), // gbsct
+  Array.from("\u{e0067}\u{e0062}\u{e0077}\u{e006c}\u{e0073}\u{e007f}"), // gbwls
+] as const;
 
 function invalid(path: PlanValidationPath, message: string): never {
   throw new PlanValidationError(message, path);
@@ -68,33 +71,24 @@ function hasExtendedPictographicBaseBefore(
   return false;
 }
 
-function codePointValue(codePoint: string): number {
-  return codePoint.codePointAt(0) ?? -1;
-}
-
-function isEmojiTagCharacter(codePoint: string): boolean {
-  const value = codePointValue(codePoint);
-  return value >= FIRST_EMOJI_TAG_CHARACTER && value <= LAST_EMOJI_TAG_CHARACTER;
-}
-
-/** Returns only indexes belonging to complete, bounded emoji tag sequences. */
-function findValidEmojiTagCodePoints(codePoints: string[]): Set<number> {
+/** Returns only indexes belonging to exact, currently recognized RGI subdivision flags. */
+function findValidSubdivisionFlagTagCodePoints(codePoints: string[]): Set<number> {
   const validIndexes = new Set<number>();
 
   for (let baseIndex = 0; baseIndex < codePoints.length; baseIndex += 1) {
-    if (!EXTENDED_PICTOGRAPHIC.test(codePoints[baseIndex])) continue;
+    if (codePoints[baseIndex] !== BLACK_FLAG) continue;
 
-    let index = baseIndex + 1;
-    if (index >= codePoints.length || !isEmojiTagCharacter(codePoints[index])) continue;
-    while (index < codePoints.length && isEmojiTagCharacter(codePoints[index])) {
-      index += 1;
-    }
-
-    if (index < codePoints.length && codePointValue(codePoints[index]) === CANCEL_TAG) {
-      for (let validIndex = baseIndex + 1; validIndex <= index; validIndex += 1) {
-        validIndexes.add(validIndex);
+    for (const tagSequence of RGI_SUBDIVISION_FLAG_TAG_SEQUENCES) {
+      const matches = tagSequence.every(
+        (codePoint, offset) => codePoints[baseIndex + 1 + offset] === codePoint,
+      );
+      if (matches) {
+        for (let offset = 0; offset < tagSequence.length; offset += 1) {
+          validIndexes.add(baseIndex + 1 + offset);
+        }
+        baseIndex += tagSequence.length;
+        break;
       }
-      baseIndex = index;
     }
   }
 
@@ -107,12 +101,12 @@ function findValidEmojiTagCodePoints(codePoints: string[]): Set<number> {
  */
 function visibleTextKey(text: string): string {
   const codePoints = Array.from(text);
-  const validEmojiTagCodePoints = findValidEmojiTagCodePoints(codePoints);
+  const validSubdivisionFlagTagCodePoints = findValidSubdivisionFlagTagCodePoints(codePoints);
   return codePoints
     .filter((codePoint, index) => {
       if (!DEFAULT_IGNORABLE.test(codePoint)) return true;
 
-      if (validEmojiTagCodePoints.has(index)) return true;
+      if (validSubdivisionFlagTagCodePoints.has(index)) return true;
 
       if (codePoint === "\u200d") {
         return hasExtendedPictographicBaseBefore(codePoints, index - 1) &&
