@@ -78,9 +78,27 @@ Aaj targets exactly one partner prize: **0G — Build with 0G Private Computer (
 
 ## Project status
 
-**Planning foundation complete; application implementation has not started.**
+**Planning foundation and development scaffold complete; product functionality has not started.**
 
-There is currently no application code, package manifest, live deployment, executed test suite, verified 0G request, selected live text model, or real request ID in this repository. Setup and run commands will be added only after code exists and those commands work from a clean checkout.
+The repository now contains the minimal Next.js/TypeScript application shell and a verified test harness. It does not yet contain voice capture, product UI, 0G integration, a live deployment, a selected live text model, or a real request ID.
+
+## Development
+
+Prerequisites: Node.js `26.5.1` (see `.nvmrc`) and pnpm `12.18.0`.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Quality checks verified on the scaffold:
+
+```bash
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm test
+pnpm build
+```
 
 ## Documentation
 
