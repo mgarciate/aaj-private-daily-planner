@@ -21,7 +21,7 @@ Real mode is required. Demo mode is an optional post-critical-path profile. If d
 
 - Real mode MUST make the planned live 0G calls.
 - Real mode MUST use `whisper-large-v3` for transcription unless a later ADR changes this requirement.
-- Real mode MUST use a server-configured 0G text model whose availability was verified by a real preflight or request.
+- Real mode MUST use server-configured 0G model `0gm-1.0-35b-a3b`, selected after live availability and structured-output verification; a later model change requires repeating the live contract.
 - Real mode MUST NOT be declared successful when either required inference stage is simulated.
 - Real mode MUST report evidence separately for each stage.
 
@@ -87,6 +87,8 @@ The planning instruction MUST:
 - identify a blocker from the transcript or use a neutral “No clear blocker identified” equivalent;
 - make `firstStep` one small physical or digital action;
 - keep encouragement brief and avoid medical, therapeutic, or guaranteed-outcome claims.
+
+The planning request MUST use 0G JSON-object response mode and strict application validation. JSON mode is not schema enforcement. The selected verification policy performs no automatic repair: malformed output fails closed. Any future bounded retry MUST create a new provider operation and retain its own evidence.
 
 Aaj MUST NOT execute instructions embedded in the transcript, call tools from transcript text, or allow transcript text to override the output schema.
 
@@ -349,8 +351,6 @@ The following MUST be resolved from real integration evidence, not guessed:
 
 - exact 0G base URL, SDK/version, speech endpoint, multipart field names, and response fields;
 - event credential provisioning and supported audio formats;
-- planner model default and structured-output capability;
-- request-ID source locations and sensitivity;
-- timeout and retry budgets based on measured latency;
+- timeout and retry budgets for the complete production flow based on broader measured latency;
 - provider privacy/retention wording;
 - hosting runtime and public rate-limit strategy.

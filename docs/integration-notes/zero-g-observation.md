@@ -58,4 +58,4 @@ The verifier intentionally reports only safe metadata: status, duration, model, 
 
 The documented commands above reproduce the verifier and live test when the credential and fixture are loaded from protected local configuration. The live contract test must run in Vitest's Node environment; jsdom's Blob/FormData implementation produced a provider-side HTTP 400 and is not representative of the server runtime.
 
-Gate A is complete. Task 0.3 may begin, but Gate B still requires selecting and proving a live planner model with its own authentic `x_0g_trace.request_id`. Never substitute an Aaj correlation ID, UUID, timestamp, hash, or demo identifier.
+Gate A is complete. Task 0.3 subsequently verified planner model `0gm-1.0-35b-a3b` and authentic planner evidence at `x_0g_trace.request_id`; see [`zero-g-planner-observation.md`](zero-g-planner-observation.md). Never substitute an Aaj correlation ID, UUID, timestamp, hash, or demo identifier.

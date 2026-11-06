@@ -89,7 +89,7 @@ A user who prefers no account and wants plan history to remain on the current de
 | FR-02 | Accept a documented set of audio upload types and enforce byte and duration limits. | Must |
 | FR-03 | Send audio to a server boundary; never expose `ZERO_G_API_KEY` to browser code or responses. | Must |
 | FR-04 | Use 0G `whisper-large-v3` for transcription in real mode. | Must |
-| FR-05 | Use a server-configured 0G text model for plan generation; the default model remains a hypothesis until verified against available models. | Must |
+| FR-05 | Use verified 0G model `0gm-1.0-35b-a3b` for plan generation, configured server-side and constrained with JSON-object response mode plus strict validation. | Must |
 | FR-06 | Validate model output into the exact plan cardinality and bounded text fields. | Must |
 | FR-07 | Surface only request IDs actually received from 0G, separately for transcription and planning. | Must |
 | FR-08 | Persist structured plans and completion state locally by calendar date. | Must |
@@ -153,9 +153,9 @@ No numeric targets will be claimed until there is an instrumented or manually re
 | Risk | Impact | Mitigation |
 |---|---|---|
 | 0G speech request format or model availability differs from assumptions | Critical path blocked | Make the first implementation gate a real minimal transcription request; isolate the adapter. |
-| Planner model availability is unknown | Plan call blocked | Configure the model server-side; verify an available text model before selecting a default. |
+| Planner model availability changes | Plan call blocked | Keep `0gm-1.0-35b-a3b` server-configured and repeat the live contract before changing the default. |
 | Request ID location or presence differs by endpoint | Prize evidence incomplete | Capture documented response fields/headers; expose absence honestly; never synthesize IDs. |
-| Model returns prose or invalid JSON | Invalid plan | Strict schema, constrained prompt/response format where supported, bounded retry, typed failure. |
+| Model returns prose or invalid JSON | Invalid plan | JSON-object response mode, strict schema, and typed failure; any future bounded retry must retain per-operation evidence. |
 | Browser codec incompatibility | Capture blocked | Capability detection and file-upload fallback. |
 | Audio or secret appears in logs | Privacy/security harm | Metadata-only logging, redaction tests, server-only import boundary. |
 | Local data is lost or corrupted | User loses history | Version records, validate on read, explicit migration, export deferred unless time permits. |

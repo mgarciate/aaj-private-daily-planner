@@ -118,6 +118,8 @@ Paths remain planned until scaffold creation. If the selected framework version 
 
 ### Task 0.3: Select and prove the planner model
 
+**Status:** Completed 2026-11-06. Live verification selected `0gm-1.0-35b-a3b` with JSON-object response mode, strict application validation, no automatic repair retry, and authentic planner evidence at `x_0g_trace.request_id`. See `docs/integration-notes/zero-g-planner-observation.md`.
+
 **Objective:** Replace the configurable-default hypothesis with a verified model and structured-output strategy.
 
 **Future files:**
