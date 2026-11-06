@@ -48,15 +48,14 @@ The following are design judgments, not sponsor rules:
 | Build a mobile-first PWA | Fastest accessible consumer surface with recording/upload fallback | Accepted; see ADR-0002 |
 | Keep history local | Supports return use while avoiding account/database scope | Accepted; see ADR-0003 |
 | Never manufacture evidence | Sponsor evidence must be authentic and inspectable | Accepted; see ADR-0004 |
-| Use two sequential inference operations | Speech transcription then structured planning is conceptually clean | Proposed pending real API verification |
-| Use `whisper-large-v3` | Explicitly listed speech model and required by the product plan | Planned, not yet tested |
-| Configure the text model server-side | Availability must be discovered rather than assumed | Planned; default TBD after verification |
+| Use two sequential inference operations | Speech transcription then structured planning is conceptually clean | Live contracts verified both operations independently; end-to-end orchestration remains planned |
+| Use `whisper-large-v3` | Explicitly listed speech model and required by the product plan | Verified live in Task 0.2 |
+| Configure `0gm-1.0-35b-a3b` server-side | Listed by the credentialed models endpoint and repeatedly returned exact schema in JSON-object mode | Verified live in Task 0.3; repeat contract before model changes |
 
 ## Open research questions
 
-- What exact request shape, content type, response shape, timeout behavior, and size limits does the live 0G speech endpoint accept?
-- Which 0G text models are actually available to the event credentials, and which support reliable structured output?
-- Where does each endpoint return its request ID: header, body, both, or neither?
+- What timeout budget is acceptable for the complete sequential production flow under broader latency sampling?
+- Do planner models other than the verified default improve quality without reducing schema reliability?
 - What provider retention and privacy guarantees can be stated accurately? Until verified, Aaj claims only its own non-retention behavior.
 - Does 0G require additional evidence or setup instructions not visible in the supplied page snapshot?
 

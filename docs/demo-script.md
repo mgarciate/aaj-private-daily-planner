@@ -3,7 +3,7 @@
 **Target runtime:** 2:20–2:45
 
 **Hard constraints:** Under the 0G sponsor’s three-minute ceiling and at least ETHGlobal’s general two-minute minimum; ≥720p; desktop screen capture; human narration; no speed-up; no phone recording; no AI/TTS voiceover.
-**Status:** Draft only. Every live URL, model, request ID, and performance statement remains TBD until verified.
+**Status:** Draft only. The speech and planner models, local live-call latency, and request-ID locations are verified; live URL, complete product flow, and demo performance remain TBD until verified.
 
 ## Preflight
 
@@ -30,7 +30,7 @@
 
 ## 0:40–1:25 — Real 0G critical path
 
-**Say:** “The audio goes to Aaj’s server, where the key stays private. Aaj asks 0G’s `whisper-large-v3` to transcribe it, then asks the configured, verified-available 0G text model for a strict plan.”
+**Say:** “The audio goes to Aaj’s server, where the key stays private. Aaj asks 0G’s `whisper-large-v3` to transcribe it, then asks `0gm-1.0-35b-a3b` for a strict JSON plan.”
 
 **Show:** Submit; the honest orchestration labels **Transcribing** then **Planning**; reveal:
 
@@ -42,8 +42,6 @@
 - separate transcription/planning evidence.
 
 **Say:** “Any request IDs shown here are copied from the actual 0G responses. Aaj never fills a missing ID with its own UUID.”
-
-> Replace “configured, verified-available model” with its actual model name only after the live contract test passes.
 
 ## 1:25–1:50 — Return tomorrow
 

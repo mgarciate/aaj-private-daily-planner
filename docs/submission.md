@@ -25,7 +25,7 @@ Planning tools often ask overloaded people to organize their thoughts before the
 
 1. Record or upload a short voice note.
 2. A server-only route sends the bounded audio to 0G `whisper-large-v3`.
-3. The transcript goes to a server-configured 0G text model verified to be available: `<TBD after live contract test>`.
+3. The transcript goes to verified 0G planner model `0gm-1.0-35b-a3b` in JSON-object response mode; Aaj strictly validates the exact plan shape.
 4. Strict validation accepts only three priorities, one blocker, one first step, and one encouragement.
 5. The browser stores the structured plan and completion state; Aaj does not retain raw audio or server-side history.
 6. The evidence panel shows each real 0G request ID exactly as returned, or clearly says unavailable.

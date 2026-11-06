@@ -2,7 +2,7 @@
 
 ## Status and boundaries
 
-This is a proposed architecture, not an implementation report. No 0G call, deployment, test, model availability check, or request-ID capture has happened in this repository yet.
+This remains a proposed product architecture, not an end-to-end implementation report. Phase 0 live verification has completed real 0G transcription and planner calls: `whisper-large-v3` and `0gm-1.0-35b-a3b` both returned authentic request evidence. Deployment and the application flow remain unimplemented.
 
 Aaj is a mobile-first PWA with a thin server boundary around two planned 0G inference operations. It retains structured plan state in the browser and intentionally has no application database, account system, contract, or background worker.
 
@@ -48,7 +48,7 @@ flowchart TB
 
     subgraph ZeroG[0G Private Computer]
       STT[whisper-large-v3]
-      TEXT[Configured text model]
+      TEXT[0gm-1.0-35b-a3b]
     end
 
     REC --> UI
@@ -96,9 +96,9 @@ flowchart TB
 2. Server independently validates the upload and creates an internal correlation ID. This ID is operational metadata, **not** provider evidence.
 3. The adapter sends the audio to the verified live 0G speech endpoint using `whisper-large-v3` and the server-only API key.
 4. The adapter obtains transcript text and captures only a provider request ID actually present in the response body or headers. The source location is recorded internally with the evidence value.
-5. The orchestrator wraps the transcript as untrusted data in a fixed planning instruction and calls the configured, verified-available 0G text model.
-6. The adapter captures planning evidence under the same rules.
-7. The output validator parses the candidate. One bounded provider retry/repair may be used only if the implementation plan confirms the model/API supports it; otherwise return a typed invalid-output error.
+5. The orchestrator wraps the transcript as untrusted data in a fixed planning instruction and calls verified 0G model `0gm-1.0-35b-a3b` with JSON-object response mode, TEE verification, and private trust mode.
+6. The adapter captures planning evidence only from observed `x_0g_trace.request_id`.
+7. The output validator parses the candidate and enforces the exact plan schema. The verified initial policy does not automatically repair or retry malformed output; it returns a typed invalid-output error.
 8. Server returns the transcript for immediate inspection, exact structured plan, mode `real`, model labels, and evidence objects. It returns `Cache-Control: no-store`.
 9. Browser stores only the structured plan, completion state, safe evidence metadata, and timestamps. It does not persist audio or transcript by default.
 
@@ -156,7 +156,7 @@ Do not accept client-selected model, mode, system prompt, user ID, request ID, o
       "evidence": { "status": "available", "requestId": "provider-value" }
     },
     "planning": {
-      "model": "configured-verified-model",
+      "model": "0gm-1.0-35b-a3b",
       "evidence": { "status": "available", "requestId": "provider-value" }
     }
   }
