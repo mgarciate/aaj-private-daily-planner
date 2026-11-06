@@ -7,6 +7,7 @@ Aaj uses AI as an assistant, not as the accountable author or verifier. Human co
 | Date | Tool | Assistance | Affected paths | Human responsibility and verification |
 |---|---|---|---|---|
 | 2026-11-06 | Hermes Agent (Nous Research), configured model | Synthesized supplied research; drafted product, architecture, specification, delivery, demo, submission, ADR, and overview documents | `README.md`, `docs/**` | Review scope and wording; compare event facts with primary pages; approve architecture; verify every implementation-time claim through real execution |
+| 2026-11-06 | Hermes Agent (Nous Research), GPT-5.6 | Generated and selectively integrated the Next.js scaffold; added the Vitest, Testing Library, jest-dom, jsdom, and tsx harness; authored the smoke test, empty environment template, fixture placeholder, and configuration updates | `.gitignore`, `.env.example`, `app/**`, `public/**`, `eslint.config.mjs`, `next.config.ts`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig.json`, `vitest.config.ts`, `tests/**`, `docs/ai-assistance.md` | Review the generated scaffold and dependency choices; inspect the diff for scope and secrets; independently rerun lint, type checking, and tests; reject any product behavior beyond the framework scaffold |
 
 ## Required implementation-time updates
 
