@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { normalizePlanningEvidence } from "./zero-g-adapter";
 
 const DEFAULT_ENDPOINT = "https://router-api.0g.ai/v1/chat/completions";
 const RESPONSE_FORMAT = "json_object" as const;
@@ -181,12 +182,14 @@ async function parseSuccessfulResponse(
   }
   const plan = validatePlannerOutput(candidate);
 
-  const trace = asJsonObject(body.x_0g_trace);
-  const requestId = trace?.request_id;
-  const requestEvidence = isNonEmptyString(requestId)
+  const normalizedEvidence = normalizePlanningEvidence({
+    headers: response.headers,
+    body,
+  });
+  const requestEvidence = normalizedEvidence.status === "available"
     ? {
-        source: "body:x_0g_trace.request_id" as const,
-        fingerprint: await fingerprintPlannerRequestId(requestId),
+        source: normalizedEvidence.source,
+        fingerprint: await fingerprintPlannerRequestId(normalizedEvidence.requestId),
       }
     : null;
 

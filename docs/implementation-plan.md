@@ -165,9 +165,11 @@ Paths remain planned until scaffold creation. If the selected framework version 
 
 ### Task 1.2: Implement typed evidence normalization
 
+**Status:** Completed 2026-11-06. Production normalization accepts only the live-observed stage-specific locations, preserves provider values exactly, uses provider-trace-over-header precedence for transcription, and returns explicit unavailable states otherwise. ADR-0004 records the locked allowlist.
+
 **Objective:** Normalize only observed provider evidence into available/unavailable states.
 
-**Future files:**
+**Files:**
 
 - Create: `lib/server/zero-g-adapter.ts`
 - Create: `tests/unit/zero-g-evidence.test.ts`
