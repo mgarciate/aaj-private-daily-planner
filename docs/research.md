@@ -17,14 +17,14 @@
 
 ## Verified winner patterns from the supplied sample
 
-The supplied file verifies ten ETHGlobal showcase projects. Eight of ten expose a visible interface; several are explicitly mobile-first, PWA, MiniKit, or Next.js experiences.[3] This supports a visible consumer flow, not a backend-only demo.
+The supplied file verifies ten ETHGlobal showcase projects, whose primary showcase pages are listed below.[3]–[12] Its internal count finds that eight of ten expose a visible interface; several are explicitly mobile-first, PWA, MiniKit, or Next.js experiences. This supports a visible consumer flow, not a backend-only demo.
 
-Three comparatively simple payment products use a familiar object as the entry point: a QR code (QryptoPay), a shared bill/link (WeSplit), or a calendar event (calendefi).[3] Poll It limits one action through verified identity; Vision Pay applies spending rules; ZKred exposes verifiable agent identity; NAR _ NET exposes an auditable subscription flow.[3]
+Three comparatively simple payment products use a familiar object as the entry point: a QR code (QryptoPay), a shared bill/link (WeSplit), or a calendar event (calendefi).[5][6][7] Poll It limits one action through verified identity; Vision Pay applies spending rules; ZKred exposes verifiable agent identity; NAR _ NET exposes an auditable subscription flow.[4][8][9][12]
 
 For 0G specifically, the supplied sample verifies:
 
-- **AInfluencer**, which won “Most Innovative Use of 0G Ecosystem,” puts 0G Compute inside an event-to-generated-content pipeline whose output drives publication.[3]
-- **DeTrain**, which placed second for “Building Onchain AI dapps with 0G intelligent L1,” uses 0G Compute/Storage in a data contribution, evaluation, and payment loop.[3]
+- **AInfluencer**, which won “Most Innovative Use of 0G Ecosystem,” puts 0G Compute inside an event-to-generated-content pipeline whose output drives publication.[10]
+- **DeTrain**, which placed second for “Building Onchain AI dapps with 0G intelligent L1,” uses 0G Compute/Storage in a data contribution, evaluation, and payment loop.[11]
 - **DIVE** also won a 0G prize within a broader identity, agent, and settlement product.[3]
 
 These are evidence of complete, inspectable loops—not proof that their complexity is required for Mumbai.
@@ -64,4 +64,13 @@ The following are design judgments, not sponsor rules:
 
 [1] https://ethglobal.com/events/mumbai/info/details — ETHGlobal Mumbai details and rules
 [2] https://ethglobal.com/events/mumbai/prizes/0g — 0G prize page
-[3] Local research input: `/opt/data/ethglobal_mumbai_winners.md`, whose source list links the ten verified ETHGlobal showcase pages
+[3] https://ethglobal.com/showcase/dive-5hxbp — DIVE
+[4] https://ethglobal.com/showcase/poll-it-wfhir — Poll It
+[5] https://ethglobal.com/showcase/qryptopay-gbvkm — QryptoPay
+[6] https://ethglobal.com/showcase/wesplit-jsbqa — WeSplit
+[7] https://ethglobal.com/showcase/calendefi-6d3ji — calendefi
+[8] https://ethglobal.com/showcase/zkred-agent-id-4aesd — ZKred Agent ID
+[9] https://ethglobal.com/showcase/vision-pay-s1t91 — Vision Pay
+[10] https://ethglobal.com/showcase/ainfluencer-moreg — AInfluencer
+[11] https://ethglobal.com/showcase/detrain-5wiyz — DeTrain
+[12] https://ethglobal.com/showcase/nar-net-s316f — NAR _ NET
