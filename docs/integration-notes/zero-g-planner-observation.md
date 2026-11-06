@@ -1,6 +1,6 @@
 # 0G planner model observation
 
-**Status:** VERIFIED against 0G mainnet Router  
+**Status:** VERIFIED against 0G mainnet Router
 **Gate:** Task 0.3 / Gate B passed on 2026-11-06 for the planner stage; Task 0.2 already established the transcription stage.
 
 ## Selected contract
@@ -17,7 +17,7 @@
 
 A credentialed `GET /v1/models` preflight listed `0gm-1.0-35b-a3b`. The selected model then completed the fixed, non-sensitive multilingual planner request repeatedly. The first structured-output attempt passed immediately; no initial schema failure was observed.
 
-The request uses Node's built-in `fetch`, a fixed system instruction, a transcript delimited as untrusted data, temperature `0`, JSON-object response mode, TEE verification query, and private provider trust mode. Application validation—not JSON mode alone—requires exactly these keys and rejects missing, extra, empty, or wrongly typed values:
+The request uses Node's built-in `fetch`, a fixed system instruction, a JSON-encoded transcript treated as untrusted data, temperature `0`, JSON-object response mode, TEE verification query, and private provider trust mode. The verifier also requires the provider-reported model to match the selected model and caps successful response bodies at 256 KiB. Application validation—not JSON mode alone—requires exactly these keys and rejects missing, extra, empty, or wrongly typed values:
 
 - `priorities`: exactly three non-empty strings;
 - `blocker`: one non-empty string;
