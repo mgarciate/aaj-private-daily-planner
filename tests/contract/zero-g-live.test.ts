@@ -1,5 +1,7 @@
+// @vitest-environment node
+
 import { readFile } from "node:fs/promises";
-import { basename, extname } from "node:path";
+import { extname } from "node:path";
 import { describe, expect, it } from "vitest";
 import { verifyZeroGTranscription } from "../../lib/server/zero-g-transcription-verifier";
 
@@ -34,7 +36,7 @@ describeLive("live 0G transcription contract", () => {
     const result = await verifyZeroGTranscription({
       apiKey: apiKey as string,
       audio: new Blob([new Uint8Array(bytes)], { type: mimeType }),
-      fileName: basename(path),
+      fileName: `fixture${extension}`,
     });
 
     expect(result.status).toBe(200);
