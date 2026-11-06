@@ -203,7 +203,7 @@ Either real evidence object may instead be `{ "status": "unavailable" }` when th
 }
 ```
 
-Proposed codes: `INVALID_AUDIO`, `AUDIO_TOO_LARGE`, `AUDIO_TOO_LONG`, `CONFIGURATION_ERROR`, `TRANSCRIPTION_FAILED`, `PLANNING_FAILED`, `INVALID_MODEL_OUTPUT`, `UPSTREAM_TIMEOUT`, `RATE_LIMITED`, and `INTERNAL_ERROR`. Correlation IDs aid support and are never described as 0G request IDs.
+Codes are fixed as `INVALID_AUDIO`, `AUDIO_TOO_LARGE`, `AUDIO_TOO_LONG`, `CONFIGURATION_ERROR`, `TRANSCRIPTION_FAILED`, `PLANNING_FAILED`, `INVALID_MODEL_OUTPUT`, `UPSTREAM_TIMEOUT`, `RATE_LIMITED`, and `INTERNAL_ERROR`. Each code has a stable message, HTTP status, and retryable value. Correlation IDs aid support and are never described as 0G request IDs; raw provider bodies, errors, stacks, authorization values, prompts, and transcripts never enter this response.
 
 ## Data model
 
@@ -314,7 +314,7 @@ Do not log audio, transcript, generated plan, authorization headers, multipart b
 - The request deadline accommodates measured sequential-call latency; otherwise architecture must change explicitly.
 - A single origin serves UI and API to simplify security and deployment.
 - No edge-runtime compatibility is assumed until the selected SDK and multipart behavior are tested.
-- Environment variables proposed: `ZERO_G_API_KEY`, `ZERO_G_PLANNER_MODEL`, and an explicit `AAJ_DEMO_MODE`/equivalent. Exact names are finalized during implementation.
+- Server environment variables are `ZERO_G_API_KEY`, `ZERO_G_PLANNER_MODEL`, and `AAJ_DEMO_MODE`. `AAJ_DEMO_MODE` accepts only exact `true` or `false`; absent/`false` selects real mode, while `true` explicitly selects demo mode. Real mode requires a nonblank key and the exact verified planner model `0gm-1.0-35b-a3b`.
 
 ## Architecture decisions
 

@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
+import { FIXED_TRANSCRIPTION_MODEL } from "../inference-models";
 import { normalizeTranscriptionEvidence } from "./zero-g-adapter";
 
 const DEFAULT_ENDPOINT = "https://router-api.0g.ai/v1/audio/transcriptions";
-const DEFAULT_MODEL = "whisper-large-v3";
 const SAFE_HEADER_NAMES = new Set([
   "content-type",
   "x-request-id",
@@ -56,7 +56,7 @@ export type SafeResponseMetadata = {
 
 export type VerificationResult = SafeResponseMetadata & {
   durationMs: number;
-  model: string;
+  model: typeof FIXED_TRANSCRIPTION_MODEL;
 };
 
 type VerifyOptions = {
@@ -64,7 +64,6 @@ type VerifyOptions = {
   audio: Blob;
   fileName: string;
   endpoint?: string;
-  model?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
 };
@@ -163,7 +162,6 @@ export async function verifyZeroGTranscription({
   audio,
   fileName,
   endpoint = DEFAULT_ENDPOINT,
-  model = DEFAULT_MODEL,
   fetchImpl = fetch,
   timeoutMs = 120_000,
 }: VerifyOptions): Promise<VerificationResult> {
@@ -172,7 +170,7 @@ export async function verifyZeroGTranscription({
   if (audio.size === 0) throw new Error("The audio fixture must not be empty");
 
   const form = new FormData();
-  form.append("model", model);
+  form.append("model", FIXED_TRANSCRIPTION_MODEL);
   form.append("file", audio, fileName);
   const startedAt = performance.now();
   const timeoutSignal = AbortSignal.timeout(timeoutMs);
@@ -202,5 +200,5 @@ export async function verifyZeroGTranscription({
     throw new Error(`0G transcription failed with HTTP ${response.status}`);
   }
 
-  return { ...metadata, durationMs, model };
+  return { ...metadata, durationMs, model: FIXED_TRANSCRIPTION_MODEL };
 }
