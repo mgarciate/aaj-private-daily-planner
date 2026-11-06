@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_PROVIDER_REQUEST_ID_CODE_POINTS,
   normalizePlanningEvidence,
   normalizeTranscriptionEvidence,
-} from "../../lib/server/zero-g-adapter";
+} from "../../lib/zero-g-contract";
 import {
   PLANNING_TRACE_REQUEST_ID,
   TRANSCRIPTION_HEADER_REQUEST_ID,
@@ -13,6 +14,55 @@ import {
 } from "../fixtures/zero-g";
 
 describe("authentic 0G evidence normalization", () => {
+  it.each([
+    ["transcription body", normalizeTranscriptionEvidence, "body"],
+    ["transcription header", normalizeTranscriptionEvidence, "header"],
+    ["planning body", normalizePlanningEvidence, "body"],
+  ] as const)(
+    "accepts exactly the final request-ID bound for %s and preserves it",
+    (_label, normalize, location) => {
+      const requestId = (location === "header" ? "x" : "😀").repeat(
+        MAX_PROVIDER_REQUEST_ID_CODE_POINTS,
+      );
+      const input = location === "header"
+        ? { headers: new Headers({ "x-request-id": requestId }), body: {} }
+        : {
+            headers: new Headers(),
+            body: { x_0g_trace: { request_id: requestId } },
+          };
+
+      const evidence = normalize(input);
+      expect(evidence).toEqual(expect.objectContaining({
+        status: "available",
+        requestId,
+      }));
+      expect(Object.isFrozen(evidence)).toBe(true);
+    },
+  );
+
+  it.each([
+    ["transcription body", normalizeTranscriptionEvidence, "body", "transcription"],
+    ["transcription header", normalizeTranscriptionEvidence, "header", "transcription"],
+    ["planning body", normalizePlanningEvidence, "body", "planning"],
+  ] as const)(
+    "makes %s evidence unavailable above the final request-ID bound",
+    (_label, normalize, location, stage) => {
+      const requestId = (location === "header" ? "x" : "😀").repeat(
+        MAX_PROVIDER_REQUEST_ID_CODE_POINTS + 1,
+      );
+      const input = location === "header"
+        ? { headers: new Headers({ "x-request-id": requestId }), body: {} }
+        : {
+            headers: new Headers(),
+            body: { x_0g_trace: { request_id: requestId } },
+          };
+
+      const evidence = normalize(input);
+      expect(evidence).toEqual({ status: "unavailable", stage });
+      expect(Object.isFrozen(evidence)).toBe(true);
+    },
+  );
+
   it("accepts the observed transcription x-request-id header and preserves its exact value", () => {
     expect(normalizeTranscriptionEvidence(transcriptionWithHeaderEvidence)).toEqual({
       status: "available",

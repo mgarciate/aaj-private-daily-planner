@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import {
   PLANNER_SYSTEM_PROMPT,
   normalizePlanningEvidence,
-} from "./zero-g-adapter";
+} from "../zero-g-contract";
 
 const DEFAULT_ENDPOINT = "https://router-api.0g.ai/v1/chat/completions";
 const RESPONSE_FORMAT = "json_object" as const;

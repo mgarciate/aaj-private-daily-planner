@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from "vitest";
+import { MAX_AUDIO_BYTES } from "../../lib/audio-policy";
 import { VERIFIED_PLANNER_MODEL } from "../../lib/inference-models";
 import { loadServerConfig, type RealServerConfig } from "../../lib/server/config";
 import { AajError } from "../../lib/server/errors";
@@ -63,6 +64,77 @@ async function expectCode(promise: Promise<unknown>, code: AajError["code"]) {
 }
 
 describe("real 0G plan orchestration", () => {
+  it("accepts audio at the final byte bound and rejects max plus one before fetch", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response(
+      JSON.stringify({ text: "Plan today" }),
+      { status: 200 },
+    ));
+    const boundedAdapter = createZeroGAdapter({ fetchImpl });
+
+    await expect(boundedAdapter.transcribe({
+      apiKey: "private-provider-key",
+      audio: new Blob([new Uint8Array(MAX_AUDIO_BYTES)]),
+      fileName,
+      model: "whisper-large-v3",
+    })).resolves.toEqual(expect.objectContaining({ transcript: "Plan today" }));
+    expect(fetchImpl).toHaveBeenCalledOnce();
+
+    fetchImpl.mockClear();
+    const oversizedAudio = new Blob([new Uint8Array(MAX_AUDIO_BYTES + 1)]);
+    await expect(boundedAdapter.transcribe({
+      apiKey: "private-provider-key",
+      audio: oversizedAudio,
+      fileName,
+      model: "whisper-large-v3",
+    })).rejects.toEqual(expect.objectContaining({
+      stage: "transcription",
+      kind: "request_failed",
+    }));
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    await expectCode(orchestrateRealPlan({
+      config: realConfig(),
+      audio: oversizedAudio,
+      fileName,
+      adapter: boundedAdapter,
+    }), "TRANSCRIPTION_FAILED");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("freezes adapter results and evidence for both stages", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      if (String(input).includes("/audio/")) {
+        return new Response(JSON.stringify({
+          text: "Plan today",
+          x_0g_trace: { request_id: "transcription-id" },
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify({
+        model: "0gm-1.0-35b-a3b",
+        choices: [{ message: { content: JSON.stringify(rawCandidate) } }],
+        x_0g_trace: { request_id: "planning-id" },
+      }), { status: 200 });
+    });
+    const boundedAdapter = createZeroGAdapter({ fetchImpl });
+
+    const transcription = await boundedAdapter.transcribe({
+      apiKey: "private-provider-key",
+      audio,
+      fileName,
+      model: "whisper-large-v3",
+    });
+    const planning = await boundedAdapter.plan({
+      apiKey: "private-provider-key",
+      transcript: transcription.transcript,
+      model: "0gm-1.0-35b-a3b",
+    });
+
+    expect(Object.isFrozen(transcription)).toBe(true);
+    expect(Object.isFrozen(transcription.evidence)).toBe(true);
+    expect(Object.isFrozen(planning)).toBe(true);
+    expect(Object.isFrozen(planning.evidence)).toBe(true);
+  });
+
   it("runs transcription before planning and returns the exact canonical success", async () => {
     const calls: string[] = [];
     const injected = adapter({
@@ -211,6 +283,60 @@ describe("real 0G plan orchestration", () => {
     expect(result.inference.transcription.evidence).toEqual({ status: "unavailable" });
     expect(result.inference.planning.evidence).toEqual({ status: "unavailable" });
     expect(JSON.stringify(result)).not.toMatch(/requestId|uuid|correlation/i);
+  });
+
+  it("returns a recursively frozen owned graph without freezing injected objects", async () => {
+    const injectedTranscription = {
+      transcript: "Plan today",
+      model: "whisper-large-v3" as const,
+      evidence: {
+        status: "available" as const,
+        stage: "transcription" as const,
+        source: "header:x-request-id" as const,
+        requestId: "transcription-request-id",
+      },
+    };
+    const injectedPlanning = {
+      candidate: rawCandidate,
+      model: "0gm-1.0-35b-a3b" as const,
+      evidence: {
+        status: "available" as const,
+        stage: "planning" as const,
+        source: "body:x_0g_trace.request_id" as const,
+        requestId: "planning-request-id",
+      },
+    };
+    const result = await orchestrateRealPlan({
+      config: realConfig(),
+      audio,
+      fileName,
+      adapter: adapter({
+        transcribe: vi.fn(async () => injectedTranscription),
+        plan: vi.fn(async () => injectedPlanning),
+      }),
+    });
+
+    const frozenNodes = [
+      result,
+      result.plan,
+      result.plan.priorities,
+      ...result.plan.priorities,
+      result.inference,
+      result.inference.transcription,
+      result.inference.transcription.evidence,
+      result.inference.planning,
+      result.inference.planning.evidence,
+    ];
+    expect(frozenNodes.every(Object.isFrozen)).toBe(true);
+    expect(Reflect.set(result.plan.priorities[0], "text", "mutated")).toBe(false);
+    expect(result.plan.priorities[0].text).toBe("Write outline");
+
+    expect(Object.isFrozen(injectedTranscription)).toBe(false);
+    expect(Object.isFrozen(injectedTranscription.evidence)).toBe(false);
+    expect(Object.isFrozen(injectedPlanning)).toBe(false);
+    expect(Object.isFrozen(injectedPlanning.evidence)).toBe(false);
+    expect(Object.isFrozen(rawCandidate)).toBe(false);
+    expect(Object.isFrozen(rawCandidate.priorities)).toBe(false);
   });
 
   it("never plans after transcription failure", async () => {

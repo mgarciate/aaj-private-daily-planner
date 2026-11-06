@@ -6,14 +6,17 @@ import {
   FIXED_TRANSCRIPTION_MODEL,
   VERIFIED_PLANNER_MODEL,
 } from "../inference-models";
+import {
+  MAX_PROVIDER_REQUEST_ID_CODE_POINTS,
+  type ZeroGPlanningEvidence,
+  type ZeroGTranscriptionEvidence,
+} from "../zero-g-contract";
 import type { RealServerConfig } from "./config";
 import { AajError, type PublicErrorCode } from "./errors";
 import {
   ZeroGUpstreamError,
   zeroGAdapter,
   type ZeroGAdapter,
-  type ZeroGPlanningEvidence,
-  type ZeroGTranscriptionEvidence,
 } from "./zero-g-adapter";
 
 /** Final planner-input limit, measured after trimming in Unicode code points. */
@@ -23,11 +26,22 @@ type PublicEvidence =
   | Readonly<{ status: "available"; requestId: string }>
   | Readonly<{ status: "unavailable" }>;
 
+type ImmutablePlan = Readonly<{
+  priorities: readonly [
+    Readonly<{ id: "p1"; text: string }>,
+    Readonly<{ id: "p2"; text: string }>,
+    Readonly<{ id: "p3"; text: string }>,
+  ];
+  blocker: string;
+  firstStep: string;
+  encouragement: string;
+}>;
+
 export type RealPlanSuccess = Readonly<{
   schemaVersion: 1;
   mode: "real";
   transcript: string;
-  plan: Plan;
+  plan: ImmutablePlan;
   inference: Readonly<{
     transcription: Readonly<{
       model: typeof FIXED_TRANSCRIPTION_MODEL;
@@ -67,20 +81,40 @@ function publicTranscriptionEvidence(
   evidence: ZeroGTranscriptionEvidence,
 ): PublicEvidence {
   if (evidence.stage !== "transcription") safeError("TRANSCRIPTION_FAILED");
-  if (evidence.status === "unavailable") return { status: "unavailable" };
+  if (evidence.status === "unavailable") return Object.freeze({ status: "unavailable" });
   if (typeof evidence.requestId !== "string" || evidence.requestId.trim().length === 0) {
     safeError("TRANSCRIPTION_FAILED");
   }
-  return { status: "available", requestId: evidence.requestId };
+  if (Array.from(evidence.requestId).length > MAX_PROVIDER_REQUEST_ID_CODE_POINTS) {
+    return Object.freeze({ status: "unavailable" });
+  }
+  return Object.freeze({ status: "available", requestId: evidence.requestId });
 }
 
 function publicPlanningEvidence(evidence: ZeroGPlanningEvidence): PublicEvidence {
   if (evidence.stage !== "planning") safeError("PLANNING_FAILED");
-  if (evidence.status === "unavailable") return { status: "unavailable" };
+  if (evidence.status === "unavailable") return Object.freeze({ status: "unavailable" });
   if (typeof evidence.requestId !== "string" || evidence.requestId.trim().length === 0) {
     safeError("PLANNING_FAILED");
   }
-  return { status: "available", requestId: evidence.requestId };
+  if (Array.from(evidence.requestId).length > MAX_PROVIDER_REQUEST_ID_CODE_POINTS) {
+    return Object.freeze({ status: "unavailable" });
+  }
+  return Object.freeze({ status: "available", requestId: evidence.requestId });
+}
+
+function immutablePlan(plan: Plan): ImmutablePlan {
+  const priorities = Object.freeze([
+    Object.freeze({ id: "p1" as const, text: plan.priorities[0].text }),
+    Object.freeze({ id: "p2" as const, text: plan.priorities[1].text }),
+    Object.freeze({ id: "p3" as const, text: plan.priorities[2].text }),
+  ] as const);
+  return Object.freeze({
+    priorities,
+    blocker: plan.blocker,
+    firstStep: plan.firstStep,
+    encouragement: plan.encouragement,
+  });
 }
 
 function validatedTranscript(rawTranscript: string): string {
@@ -161,20 +195,23 @@ export async function orchestrateRealPlan({
     safeError("INVALID_MODEL_OUTPUT");
   }
 
-  return {
+  const resultPlan = immutablePlan(plan);
+  const inference = Object.freeze({
+    transcription: Object.freeze({
+      model: FIXED_TRANSCRIPTION_MODEL,
+      evidence: transcriptionEvidence,
+    }),
+    planning: Object.freeze({
+      model: VERIFIED_PLANNER_MODEL,
+      evidence: publicPlanningEvidence(planning.evidence),
+    }),
+  });
+
+  return Object.freeze({
     schemaVersion: 1,
     mode: "real",
     transcript,
-    plan,
-    inference: {
-      transcription: {
-        model: FIXED_TRANSCRIPTION_MODEL,
-        evidence: transcriptionEvidence,
-      },
-      planning: {
-        model: VERIFIED_PLANNER_MODEL,
-        evidence: publicPlanningEvidence(planning.evidence),
-      },
-    },
-  };
+    plan: resultPlan,
+    inference,
+  });
 }
