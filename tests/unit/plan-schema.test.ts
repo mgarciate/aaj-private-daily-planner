@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PLAN_TEXT_LIMITS,
   PlanValidationError,
+  normalizePriorityText,
   parsePlanCandidate,
 } from "../../lib/domain/plan-schema";
 
@@ -107,6 +108,19 @@ describe("daily plan schema", () => {
       parsePlanCandidate({
         ...validCandidate,
         priorities: ["Review ✈️ route", "Review ✈ route", "Walk"],
+      }),
+    ).not.toThrow();
+  });
+
+  it.each([
+    ["emoji modifier", "Plan 👩🏽‍💻 session", "Plan 👩🏽💻 session"],
+    ["variation selector", "Recover ❤️‍🔥 energy", "Recover ❤️🔥 energy"],
+  ])("preserves a ZWJ after an emoji %s", (_label, joined, unjoined) => {
+    expect(normalizePriorityText(joined)).not.toBe(normalizePriorityText(unjoined));
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: [joined, unjoined, "Walk"],
       }),
     ).not.toThrow();
   });

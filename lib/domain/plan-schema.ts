@@ -37,6 +37,7 @@ const EXPECTED_KEYS = [
 const C0_OR_C1_CONTROL = /[\u0000-\u001f\u007f-\u009f]/u;
 const DEFAULT_IGNORABLE = new RegExp("\\p{Default_Ignorable_Code_Point}", "u");
 const EXTENDED_PICTOGRAPHIC = new RegExp("\\p{Extended_Pictographic}", "u");
+const EMOJI_MODIFIER = new RegExp("\\p{Emoji_Modifier}", "u");
 const WHITE_SPACE = new RegExp("\\p{White_Space}", "gu");
 const EMOJI_VARIATION_SELECTORS = new Set(["\ufe0e", "\ufe0f"]);
 
@@ -46,6 +47,27 @@ function invalid(path: PlanValidationPath, message: string): never {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isEmojiSequenceDecoration(codePoint: string): boolean {
+  return EMOJI_MODIFIER.test(codePoint) || EMOJI_VARIATION_SELECTORS.has(codePoint);
+}
+
+function hasExtendedPictographicBase(
+  codePoints: string[],
+  startIndex: number,
+  direction: -1 | 1,
+): boolean {
+  for (
+    let index = startIndex;
+    index >= 0 && index < codePoints.length;
+    index += direction
+  ) {
+    const codePoint = codePoints[index];
+    if (EXTENDED_PICTOGRAPHIC.test(codePoint)) return true;
+    if (!isEmojiSequenceDecoration(codePoint)) return false;
+  }
+  return false;
 }
 
 /**
@@ -58,14 +80,11 @@ function visibleTextKey(text: string): string {
     .filter((codePoint, index) => {
       if (!DEFAULT_IGNORABLE.test(codePoint)) return true;
 
-      const previous = codePoints[index - 1];
-      const next = codePoints[index + 1];
       if (codePoint === "\u200d") {
-        return previous !== undefined &&
-          next !== undefined &&
-          EXTENDED_PICTOGRAPHIC.test(previous) &&
-          EXTENDED_PICTOGRAPHIC.test(next);
+        return hasExtendedPictographicBase(codePoints, index - 1, -1) &&
+          hasExtendedPictographicBase(codePoints, index + 1, 1);
       }
+      const previous = codePoints[index - 1];
       return EMOJI_VARIATION_SELECTORS.has(codePoint) &&
         previous !== undefined &&
         EXTENDED_PICTOGRAPHIC.test(previous);
