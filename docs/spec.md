@@ -193,10 +193,10 @@ Server validation is authoritative.
 | `transcript` | Trimmed, non-empty, bounded to a documented maximum before planning |
 | `priorities` | Array length exactly 3; no duplicate normalized text |
 | priority `id` | Reassigned by Aaj to exactly `p1`, `p2`, `p3`; never treated as provider evidence |
-| priority `text` | Trimmed, non-empty, single actionable item, proposed 1–160 Unicode characters |
-| `blocker` | Trimmed, non-empty, proposed 1–200 characters |
-| `firstStep` | Trimmed, non-empty, one action, proposed 1–160 characters |
-| `encouragement` | Trimmed, non-empty, one short sentence, proposed 1–140 characters |
+| priority `text` | Trimmed, non-empty, single actionable item, 1–160 Unicode code points |
+| `blocker` | Trimmed, non-empty, 1–200 Unicode code points |
+| `firstStep` | Trimmed, non-empty, one action, 1–160 Unicode code points |
+| `encouragement` | Trimmed, non-empty, one short sentence, 1–140 Unicode code points |
 | request ID | Non-empty string from an allowlisted observed provider field/header; maximum length set after observation |
 
 The validator MUST reject additional priorities, missing fields, wrong types, empty strings, and text beyond final limits. It MUST NOT silently drop a fourth priority, combine priorities, or substitute invented content.
