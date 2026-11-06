@@ -3,7 +3,11 @@ import { extname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
-const configPath = join(root, "lib/server/config.ts");
+const credentialModulePaths = [
+  "lib/server/config.ts",
+  "lib/server/zero-g-adapter.ts",
+  "lib/server/plan-orchestrator.ts",
+];
 
 function sourceFiles(path: string): string[] {
   if (!existsSync(path)) return [];
@@ -15,14 +19,26 @@ function sourceFiles(path: string): string[] {
 }
 
 describe("server-only configuration boundary", () => {
-  it("uses the production server-only marker as a direct dependency", () => {
-    const configSource = readFileSync(configPath, "utf8");
+  it("uses the production server-only marker directly in every credential module", () => {
     const packageJson = JSON.parse(
       readFileSync(join(root, "package.json"), "utf8"),
     ) as { dependencies?: Record<string, string> };
 
-    expect(configSource.startsWith('import "server-only";')).toBe(true);
+    for (const path of credentialModulePaths) {
+      expect(readFileSync(join(root, path), "utf8").startsWith('import "server-only";')).toBe(
+        true,
+      );
+    }
     expect(packageJson.dependencies?.["server-only"]).toBe("^0.0.1");
+  });
+
+  it("keeps the server-only alias isolated to Vitest", () => {
+    const vitestSource = readFileSync(join(root, "vitest.config.ts"), "utf8");
+    const tsconfigSource = readFileSync(join(root, "tsconfig.json"), "utf8");
+
+    expect(vitestSource).toContain('"server-only": fileURLToPath(');
+    expect(vitestSource).toContain('new URL("./tests/stubs/server-only.ts"');
+    expect(tsconfigSource).not.toContain("server-only");
   });
 
   it("has no Client Component that imports the secret configuration module", () => {
@@ -40,13 +56,16 @@ describe("server-only configuration boundary", () => {
     expect(clientImporters).toEqual([]);
   });
 
-  it("keeps secret-free verifier constants outside the secret config module", () => {
-    const verifierSource = readFileSync(
-      join(root, "lib/server/zero-g-transcription-verifier.ts"),
-      "utf8",
-    );
-
-    expect(verifierSource).toContain('from "../inference-models"');
-    expect(verifierSource).not.toMatch(/from\s+["'].+\/config["']/);
+  it("keeps CLI verifiers independent of credential modules", () => {
+    for (const file of [
+      "lib/server/zero-g-transcription-verifier.ts",
+      "lib/server/zero-g-planner-verifier.ts",
+    ]) {
+      const verifierSource = readFileSync(join(root, file), "utf8");
+      expect(verifierSource).toContain('from "../zero-g-contract"');
+      expect(verifierSource).not.toMatch(
+        /from\s+["'].+\/(?:config|zero-g-adapter|plan-orchestrator)["']/,
+      );
+    }
   });
 });

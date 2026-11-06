@@ -190,14 +190,15 @@ Server validation is authoritative.
 
 | Field | Rule |
 |---|---|
-| `transcript` | Trimmed, non-empty, bounded to a documented maximum before planning |
+| audio upload | Non-empty, at most 10 MiB (`10 * 1024 * 1024` bytes) before any provider request |
+| `transcript` | Trimmed, non-empty, at most 8,000 Unicode code points before planning |
 | `priorities` | Array length exactly 3; no duplicate normalized text |
 | priority `id` | Reassigned by Aaj to exactly `p1`, `p2`, `p3`; never treated as provider evidence |
 | priority `text` | Trimmed, non-empty, single actionable item, 1–160 Unicode code points |
 | `blocker` | Trimmed, non-empty, 1–200 Unicode code points |
 | `firstStep` | Trimmed, non-empty, one action, 1–160 Unicode code points |
 | `encouragement` | Trimmed, non-empty, one short sentence, 1–140 Unicode code points |
-| request ID | Non-empty string from an allowlisted observed provider field/header; maximum length set after observation |
+| request ID | Non-empty string from an allowlisted observed provider field/header; final server bound of at most 512 Unicode code points, otherwise evidence is unavailable |
 
 “Single actionable item,” “one action,” and “one short sentence” are planner-generation semantics, enforced by the planning instruction and evaluated in planner quality tests; the deterministic parser does not attempt natural-language classification. Parser enforcement covers exact types and fields, trimming, cardinality, Unicode-code-point length, visible non-emptiness, control-character rejection, and normalized duplicate priorities.
 
@@ -229,6 +230,7 @@ If a bounded repair/retry is implemented, it MUST create a new planning inferenc
 6. The UI MUST NOT use “verified run” as a blanket success label unless current 0G documentation and the returned evidence support that exact claim. Safer default copy is “Real 0G inference” plus per-stage evidence status.
 7. Tests MUST include missing, blank, malformed, duplicate, and demo evidence cases.
 8. Fixtures MUST use obviously synthetic values and MUST be marked fixtures; documentation MUST not present them as runs that happened.
+9. The final server request-ID bound is 512 Unicode code points. Aaj MUST preserve accepted values exactly and MUST treat longer values as unavailable rather than truncate or expose them.
 
 ## 9. Result and history UI
 

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
+import { MAX_AUDIO_BYTES } from "../audio-policy";
 import { FIXED_TRANSCRIPTION_MODEL } from "../inference-models";
-import { normalizeTranscriptionEvidence } from "./zero-g-adapter";
+import { normalizeTranscriptionEvidence } from "../zero-g-contract";
 
 const DEFAULT_ENDPOINT = "https://router-api.0g.ai/v1/audio/transcriptions";
 const SAFE_HEADER_NAMES = new Set([
@@ -168,6 +169,9 @@ export async function verifyZeroGTranscription({
   if (!apiKey.trim()) throw new Error("ZERO_G_API_KEY is required");
   if (!fileName.trim()) throw new Error("An explicit audio fixture path is required");
   if (audio.size === 0) throw new Error("The audio fixture must not be empty");
+  if (audio.size > MAX_AUDIO_BYTES) {
+    throw new Error(`The audio fixture must not exceed ${MAX_AUDIO_BYTES} bytes`);
+  }
 
   const form = new FormData();
   form.append("model", FIXED_TRANSCRIPTION_MODEL);

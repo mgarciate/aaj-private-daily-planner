@@ -209,9 +209,11 @@ Paths remain planned until scaffold creation. If the selected framework version 
 
 ### Task 1.4: Orchestrate transcription and planning
 
+**Status:** Completed 2026-11-06. Real mode now performs one bounded 0G transcription followed by one bounded 0G planning call, validates every candidate through the canonical domain parser, and returns only authentic stage evidence or explicit unavailable states. Planner input is trimmed and capped at 8,000 Unicode code points; failures do not retry, cache, log, or persist content.
+
 **Objective:** Produce a validated plan with stage-specific evidence and no persistence.
 
-**Future files:**
+**Files:**
 
 - Create: `lib/server/plan-orchestrator.ts`
 - Create: `tests/unit/plan-orchestrator.test.ts`
