@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { normalizeTranscriptionEvidence } from "./zero-g-adapter";
 
 const DEFAULT_ENDPOINT = "https://router-api.0g.ai/v1/audio/transcriptions";
 const DEFAULT_MODEL = "whisper-large-v3";
@@ -33,6 +34,16 @@ export type CandidateEvidence = {
   fingerprint: string;
 };
 
+export type TranscriptionRequestEvidence =
+  | {
+      status: "available";
+      source: "header:x-request-id" | "body:x_0g_trace.request_id";
+      fingerprint: string;
+    }
+  | {
+      status: "unavailable";
+    };
+
 export type SafeResponseMetadata = {
   status: number;
   transcriptPresent: boolean;
@@ -40,6 +51,7 @@ export type SafeResponseMetadata = {
   safeHeaderNames: string[];
   bodyKeys: string[];
   candidateEvidence: CandidateEvidence[];
+  requestEvidence: TranscriptionRequestEvidence;
 };
 
 export type VerificationResult = SafeResponseMetadata & {
@@ -117,6 +129,19 @@ export async function inspectResponseMetadata(
     });
   }
 
+  const normalizedEvidence = normalizeTranscriptionEvidence({
+    headers: response.headers,
+    body,
+  });
+  const requestEvidence: TranscriptionRequestEvidence =
+    normalizedEvidence.status === "available"
+      ? {
+          status: "available",
+          source: normalizedEvidence.source,
+          fingerprint: await fingerprintCandidate(normalizedEvidence.requestId),
+        }
+      : { status: "unavailable" };
+
   return {
     status: response.status,
     transcriptPresent: transcript !== null,
@@ -129,6 +154,7 @@ export async function inspectResponseMetadata(
         fingerprint: await fingerprintCandidate(value),
       })),
     ),
+    requestEvidence,
   };
 }
 

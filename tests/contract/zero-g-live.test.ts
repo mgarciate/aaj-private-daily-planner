@@ -22,7 +22,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 const describeLive = liveEnabled ? describe : describe.skip;
 
 describeLive("live 0G transcription contract", () => {
-  it("transcribes a non-sensitive fixture and returns candidate request evidence", async () => {
+  it("transcribes a non-sensitive fixture and returns allowlisted request evidence", async () => {
     expect(apiKey, "ZERO_G_API_KEY is required when RUN_0G_LIVE_TESTS=1").toBeTruthy();
     expect(
       fixturePath,
@@ -45,7 +45,15 @@ describeLive("live 0G transcription contract", () => {
     expect(result.model).toBe("whisper-large-v3");
     expect(result.transcriptPresent).toBe(true);
     expect(result.transcriptLength).toBeGreaterThan(0);
-    expect(result.candidateEvidence.length).toBeGreaterThan(0);
+    expect(result.requestEvidence.status).toBe("available");
+    if (result.requestEvidence.status !== "available") {
+      throw new Error("Expected normalized transcription request evidence");
+    }
+    expect([
+      "header:x-request-id",
+      "body:x_0g_trace.request_id",
+    ]).toContain(result.requestEvidence.source);
+    expect(result.requestEvidence.fingerprint).toMatch(/^sha256:[a-f0-9]{16}$/);
   }, 120_000);
 });
 

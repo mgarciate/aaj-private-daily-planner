@@ -51,6 +51,11 @@ describe("0G transcription verifier", () => {
         fingerprint: await fingerprintCandidate("req_secret_value"),
       },
     ]);
+    expect(metadata.requestEvidence).toEqual({
+      status: "available",
+      source: "header:x-request-id",
+      fingerprint: await fingerprintCandidate("header_secret_value"),
+    });
     expect(JSON.stringify(metadata)).not.toContain("private transcript");
     expect(JSON.stringify(metadata)).not.toContain("header_secret_value");
     expect(JSON.stringify(metadata)).not.toContain("req_secret_value");
@@ -67,6 +72,7 @@ describe("0G transcription verifier", () => {
     );
 
     expect(metadata.candidateEvidence).toEqual([]);
+    expect(metadata.requestEvidence).toEqual({ status: "unavailable" });
   });
 
   it("recognizes the documented 0G trace request ID as candidate evidence", async () => {
@@ -86,7 +92,26 @@ describe("0G transcription verifier", () => {
         fingerprint: await fingerprintCandidate("trace_secret_value"),
       },
     ]);
+    expect(metadata.requestEvidence).toEqual({
+      status: "available",
+      source: "body:x_0g_trace.request_id",
+      fingerprint: await fingerprintCandidate("trace_secret_value"),
+    });
     expect(JSON.stringify(metadata)).not.toContain("trace_secret_value");
+  });
+
+  it("does not promote legacy candidates into normalized request evidence", async () => {
+    const metadata = await inspectResponseMetadata(
+      new Response(JSON.stringify({ text: "hello", request_id: "legacy_body_value" }), {
+        status: 200,
+        headers: { "x-0g-request-id": "legacy_header_value" },
+      }),
+    );
+
+    expect(metadata.candidateEvidence).toHaveLength(2);
+    expect(metadata.requestEvidence).toEqual({ status: "unavailable" });
+    expect(JSON.stringify(metadata)).not.toContain("legacy_body_value");
+    expect(JSON.stringify(metadata)).not.toContain("legacy_header_value");
   });
 
   it("does not treat whitespace-only output as a transcript", async () => {
