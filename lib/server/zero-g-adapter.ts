@@ -75,6 +75,25 @@ function asJsonObject(value: unknown): JsonObject | null {
     : null;
 }
 
+function deepFreezeJson<T>(value: T): T {
+  if (typeof value !== "object" || value === null) return value;
+
+  const pending: object[] = [value];
+  const visited = new WeakSet<object>();
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+
+    for (const child of Object.values(current)) {
+      if (typeof child === "object" && child !== null) pending.push(child);
+    }
+    Object.freeze(current);
+  }
+
+  return value;
+}
+
 function fail(stage: ZeroGEvidenceStage, kind: ZeroGUpstreamFailureKind): never {
   throw new ZeroGUpstreamError(stage, kind);
 }
@@ -274,8 +293,9 @@ export function createZeroGAdapter({
       }
       if (body.model !== VERIFIED_PLANNER_MODEL) fail("planning", "invalid_response");
 
+      const candidate = deepFreezeJson(readPlannerCandidate(body));
       return Object.freeze({
-        candidate: readPlannerCandidate(body),
+        candidate,
         model: VERIFIED_PLANNER_MODEL,
         evidence: normalizePlanningEvidence({ headers: response.headers, body }),
       });

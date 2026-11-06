@@ -101,7 +101,16 @@ describe("real 0G plan orchestration", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("freezes adapter results and evidence for both stages", async () => {
+  it("freezes the complete owned adapter result graph", async () => {
+    const nestedCandidate = {
+      priorities: [
+        {
+          text: "Write outline",
+          steps: [{ text: "Open the document" }],
+        },
+      ],
+      metadata: { labels: ["focused"] },
+    };
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       if (String(input).includes("/audio/")) {
         return new Response(JSON.stringify({
@@ -111,7 +120,7 @@ describe("real 0G plan orchestration", () => {
       }
       return new Response(JSON.stringify({
         model: "0gm-1.0-35b-a3b",
-        choices: [{ message: { content: JSON.stringify(rawCandidate) } }],
+        choices: [{ message: { content: JSON.stringify(nestedCandidate) } }],
         x_0g_trace: { request_id: "planning-id" },
       }), { status: 200 });
     });
@@ -123,16 +132,76 @@ describe("real 0G plan orchestration", () => {
       fileName,
       model: "whisper-large-v3",
     });
-    const planning = await boundedAdapter.plan({
-      apiKey: "private-provider-key",
+    const planningInput = {
+      apiKey: "test-key",
       transcript: transcription.transcript,
-      model: "0gm-1.0-35b-a3b",
-    });
+      model: "0gm-1.0-35b-a3b" as const,
+    };
+    const planning = await boundedAdapter.plan(planningInput);
 
     expect(Object.isFrozen(transcription)).toBe(true);
     expect(Object.isFrozen(transcription.evidence)).toBe(true);
     expect(Object.isFrozen(planning)).toBe(true);
     expect(Object.isFrozen(planning.evidence)).toBe(true);
+
+    const candidate = planning.candidate as typeof nestedCandidate;
+    expect(Object.isFrozen(candidate)).toBe(true);
+    expect(Object.isFrozen(candidate.priorities)).toBe(true);
+    expect(Object.isFrozen(candidate.priorities[0])).toBe(true);
+    expect(Object.isFrozen(candidate.priorities[0].steps)).toBe(true);
+    expect(Object.isFrozen(candidate.priorities[0].steps[0])).toBe(true);
+    expect(Object.isFrozen(candidate.metadata)).toBe(true);
+    expect(Object.isFrozen(candidate.metadata.labels)).toBe(true);
+    expect(Object.isFrozen(planningInput)).toBe(false);
+    expect(Object.isFrozen(nestedCandidate)).toBe(false);
+
+    expect(() => {
+      (planning as { model: string }).model = "mutated";
+    }).toThrow(TypeError);
+    expect(() => {
+      (planning.evidence as { stage: string }).stage = "mutated";
+    }).toThrow(TypeError);
+    expect(() => {
+      candidate.metadata = { labels: ["mutated"] };
+    }).toThrow(TypeError);
+    expect(() => {
+      candidate.metadata.labels.push("mutated");
+    }).toThrow(TypeError);
+    expect(() => {
+      candidate.priorities[0].steps[0].text = "Mutated";
+    }).toThrow(TypeError);
+    expect(candidate).toEqual(nestedCandidate);
+  });
+
+  it("orchestrates a canonical provider candidate after deep-freezing it", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      if (String(input).includes("/audio/")) {
+        return new Response(JSON.stringify({
+          text: "Plan the project, reply to messages, and walk.",
+          x_0g_trace: { request_id: "transcription-id" },
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify({
+        model: "0gm-1.0-35b-a3b",
+        choices: [{ message: { content: JSON.stringify(rawCandidate) } }],
+        x_0g_trace: { request_id: "planning-id" },
+      }), { status: 200 });
+    });
+
+    const result = await orchestrateRealPlan({
+      config: realConfig(),
+      audio,
+      fileName,
+      adapter: createZeroGAdapter({ fetchImpl }),
+    });
+
+    expect(result.plan.priorities).toEqual([
+      { id: "p1", text: "Write outline" },
+      { id: "p2", text: "Reply to messages" },
+      { id: "p3", text: "Take a walk" },
+    ]);
+    expect(result.plan.blocker).toBe("The section order is unclear");
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("runs transcription before planning and returns the exact canonical success", async () => {
