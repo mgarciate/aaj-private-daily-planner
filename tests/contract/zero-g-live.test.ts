@@ -3,6 +3,8 @@
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
 import { describe, expect, it } from "vitest";
+import { loadServerConfig } from "../../lib/server/config";
+import { orchestrateRealPlan } from "../../lib/server/plan-orchestrator";
 import { verifyZeroGPlanner } from "../../lib/server/zero-g-planner-verifier";
 import { verifyZeroGTranscription } from "../../lib/server/zero-g-transcription-verifier";
 
@@ -90,5 +92,42 @@ describeLive("live 0G planner contract", () => {
     expect(results[0].requestEvidence?.fingerprint).not.toBe(
       results[1].requestEvidence?.fingerprint,
     );
+  }, 250_000);
+});
+
+describeLive("live production 0G orchestration contract", () => {
+  it("returns a canonically validated real plan with authentic stage evidence", async () => {
+    expect(apiKey, "ZERO_G_API_KEY is required when RUN_0G_LIVE_TESTS=1").toBeTruthy();
+    expect(fixturePath, "ZERO_G_AUDIO_FIXTURE is required when RUN_0G_LIVE_TESTS=1").toBeTruthy();
+    expect(plannerModel, "ZERO_G_PLANNER_MODEL must be the verified model").toBe(
+      "0gm-1.0-35b-a3b",
+    );
+
+    const path = fixturePath as string;
+    const extension = extname(path).toLowerCase();
+    const mimeType = MIME_BY_EXTENSION[extension];
+    expect(mimeType, `Unsupported live fixture extension: ${extension}`).toBeTruthy();
+    const bytes = await readFile(path);
+    const config = loadServerConfig({
+      AAJ_DEMO_MODE: "false",
+      ZERO_G_API_KEY: apiKey,
+      ZERO_G_PLANNER_MODEL: plannerModel,
+    });
+    if (config.mode !== "real") throw new Error("Expected real server configuration");
+
+    const result = await orchestrateRealPlan({
+      config,
+      audio: new Blob([new Uint8Array(bytes)], { type: mimeType }),
+      fileName: `fixture${extension}`,
+    });
+
+    expect(result.schemaVersion).toBe(1);
+    expect(result.mode).toBe("real");
+    expect(result.transcript.trim().length).toBeGreaterThan(0);
+    expect(result.plan.priorities.map(({ id }) => id)).toEqual(["p1", "p2", "p3"]);
+    expect(result.inference.transcription.model).toBe("whisper-large-v3");
+    expect(result.inference.planning.model).toBe("0gm-1.0-35b-a3b");
+    expect(result.inference.transcription.evidence.status).toBe("available");
+    expect(result.inference.planning.evidence.status).toBe("available");
   }, 250_000);
 });

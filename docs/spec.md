@@ -190,7 +190,7 @@ Server validation is authoritative.
 
 | Field | Rule |
 |---|---|
-| `transcript` | Trimmed, non-empty, bounded to a documented maximum before planning |
+| `transcript` | Trimmed, non-empty, at most 8,000 Unicode code points before planning |
 | `priorities` | Array length exactly 3; no duplicate normalized text |
 | priority `id` | Reassigned by Aaj to exactly `p1`, `p2`, `p3`; never treated as provider evidence |
 | priority `text` | Trimmed, non-empty, single actionable item, 1–160 Unicode code points |

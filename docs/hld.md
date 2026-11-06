@@ -96,9 +96,9 @@ flowchart TB
 2. Server independently validates the upload and creates an internal correlation ID. This ID is operational metadata, **not** provider evidence.
 3. The adapter sends the audio to the verified live 0G speech endpoint using `whisper-large-v3` and the server-only API key.
 4. The adapter obtains transcript text and captures only a provider request ID actually present in the response body or headers. The source location is recorded internally with the evidence value.
-5. The orchestrator wraps the transcript as untrusted data in a fixed planning instruction and calls verified 0G model `0gm-1.0-35b-a3b` with JSON-object response mode, TEE verification, and private trust mode.
+5. The orchestrator trims the transcript, rejects blank text or more than 8,000 Unicode code points, wraps the accepted transcript as a JSON-encoded untrusted-data field in a fixed planning instruction, and calls verified 0G model `0gm-1.0-35b-a3b` with JSON-object response mode, TEE verification, and private trust mode.
 6. The adapter captures planning evidence only from observed `x_0g_trace.request_id`.
-7. The output validator parses the candidate and enforces the exact plan schema. The verified initial policy does not automatically repair or retry malformed output; it returns a typed invalid-output error.
+7. The canonical output validator parses every candidate and enforces the exact plan schema. The verified initial policy does not automatically repair or retry malformed output; it returns a typed invalid-output error. Each provider operation has a 120-second timeout and a 256 KiB successful-response limit.
 8. Server returns the transcript for immediate inspection, exact structured plan, mode `real`, model labels, and evidence objects. It returns `Cache-Control: no-store`.
 9. Browser stores only the structured plan, completion state, safe evidence metadata, and timestamps. It does not persist audio or transcript by default.
 
