@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { FIXED_TRANSCRIPTION_MODEL } from "./config";
+import { FIXED_TRANSCRIPTION_MODEL } from "../inference-models";
 import { normalizeTranscriptionEvidence } from "./zero-g-adapter";
 
 const DEFAULT_ENDPOINT = "https://router-api.0g.ai/v1/audio/transcriptions";

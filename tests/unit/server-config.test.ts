@@ -1,17 +1,30 @@
+import { inspect } from "node:util";
 import { describe, expect, it } from "vitest";
 import {
   FIXED_TRANSCRIPTION_MODEL,
   VERIFIED_PLANNER_MODEL,
-  loadServerConfig,
-} from "../../lib/server/config";
+} from "../../lib/inference-models";
+import { loadServerConfig } from "../../lib/server/config";
 import {
   AajError,
   PUBLIC_ERROR_CODES,
   PUBLIC_ERROR_DEFINITIONS,
+  createCorrelationId,
   mapErrorToPublicResponse,
+  type CorrelationId,
+  type PublicErrorCode,
 } from "../../lib/server/errors";
 
 const SECRET = "private-provider-key";
+const CORRELATION_ID_PATTERN = /^aaj_[0-9a-f]{32}$/;
+
+function realConfig() {
+  return loadServerConfig({
+    AAJ_DEMO_MODE: "false",
+    ZERO_G_API_KEY: SECRET,
+    ZERO_G_PLANNER_MODEL: VERIFIED_PLANNER_MODEL,
+  });
+}
 
 describe("server inference configuration", () => {
   it("loads real mode by default with the fixed transcription and verified planner models", () => {
@@ -79,18 +92,32 @@ describe("server inference configuration", () => {
     );
   });
 
-  it("does not enumerate or serialize the provider key", () => {
-    const config = loadServerConfig({
-      AAJ_DEMO_MODE: "false",
-      ZERO_G_API_KEY: SECRET,
-      ZERO_G_PLANNER_MODEL: VERIFIED_PLANNER_MODEL,
-    });
+  it("keeps the provider key behind only the explicit server accessor", () => {
+    const config = realConfig();
+    if (config.mode !== "real") throw new Error("expected real config");
 
-    expect(Object.values(config)).not.toContain(SECRET);
-    expect(JSON.stringify(config)).not.toContain(SECRET);
+    const spread = { ...config };
+    const ownReflection = {
+      keys: Reflect.ownKeys(config),
+      descriptors: Object.getOwnPropertyDescriptors(config),
+    };
+    const representations = [
+      Object.values(config),
+      spread,
+      ownReflection,
+      inspect(config),
+      inspect(config, { showHidden: true, depth: null }),
+    ];
+
+    for (const representation of representations) {
+      expect(inspect(representation, { showHidden: true, depth: null })).not.toContain(
+        SECRET,
+      );
+    }
     expect(JSON.stringify(config)).toBe(
       '{"mode":"real","transcriptionModel":"whisper-large-v3","plannerModel":"0gm-1.0-35b-a3b"}',
     );
+    expect(config.getZeroGApiKey()).toBe(SECRET);
   });
 });
 
@@ -120,16 +147,15 @@ describe("safe public errors", () => {
       ),
     );
     expect(Object.isFrozen(PUBLIC_ERROR_DEFINITIONS)).toBe(true);
-    expect(
-      Object.values(PUBLIC_ERROR_DEFINITIONS).every(Object.isFrozen),
-    ).toBe(true);
+    expect(Object.values(PUBLIC_ERROR_DEFINITIONS).every(Object.isFrozen)).toBe(true);
   });
 
   it.each(mappings)("maps %s deterministically", (code, status, retryable, message) => {
     const privateDetails = `${SECRET}; prompt=secret; transcript=private; Bearer token`;
+    const correlationId = createCorrelationId();
     const mapped = mapErrorToPublicResponse(
       new AajError(code, { cause: new Error(privateDetails) }),
-      "aaj-correlation-id",
+      correlationId,
     );
 
     expect(mapped.status).toBe(status);
@@ -137,9 +163,72 @@ describe("safe public errors", () => {
       code,
       message,
       retryable,
-      correlationId: "aaj-correlation-id",
+      correlationId,
     });
     expect(mapped.body.error.message).not.toContain(privateDetails);
+  });
+
+  it("makes an AajError code runtime-immutable", () => {
+    const error = new AajError("INVALID_AUDIO");
+
+    expect(() => {
+      (error as unknown as { code: string }).code = "INTERNAL_ERROR";
+    }).toThrow(TypeError);
+    expect(() => {
+      Object.defineProperty(error, "code", { value: "constructor" });
+    }).toThrow(TypeError);
+    expect(error.code).toBe("INVALID_AUDIO");
+  });
+
+  it.each(["toString", "constructor", "__proto__", "NOT_A_CODE"])(
+    "rejects forged own code %s",
+    (forgedCode) => {
+      const forged = new AajError(forgedCode as PublicErrorCode);
+      expect(mapErrorToPublicResponse(forged).body.error.code).toBe("INTERNAL_ERROR");
+    },
+  );
+
+  it("rejects inherited codes even on an AajError-prototype object", () => {
+    const inherited = Object.create(new AajError("INVALID_AUDIO")) as AajError;
+
+    expect(Object.hasOwn(inherited, "code")).toBe(false);
+    expect(mapErrorToPublicResponse(inherited).body.error.code).toBe("INTERNAL_ERROR");
+  });
+
+  it("freezes the complete returned public response graph", () => {
+    const mapped = mapErrorToPublicResponse(new AajError("INVALID_AUDIO"));
+    const stableMessage = mapped.body.error.message;
+
+    expect(Object.isFrozen(mapped)).toBe(true);
+    expect(Object.isFrozen(mapped.body)).toBe(true);
+    expect(Object.isFrozen(mapped.body.error)).toBe(true);
+    expect(() => {
+      (mapped.body.error as unknown as { message: string }).message = SECRET;
+    }).toThrow(TypeError);
+    expect(mapped.body.error.message).toBe(stableMessage);
+  });
+
+  it("generates closed, cryptographically random correlation IDs", () => {
+    const first = createCorrelationId();
+    const second = createCorrelationId();
+
+    expect(first).toMatch(CORRELATION_ID_PATTERN);
+    expect(second).toMatch(CORRELATION_ID_PATTERN);
+    expect(second).not.toBe(first);
+  });
+
+  it("replaces runtime-invalid correlation IDs instead of reflecting input", () => {
+    const privateInput = `provider-request-${SECRET}`;
+    const mapped = mapErrorToPublicResponse(
+      new Error(`unexpected ${SECRET}`),
+      privateInput as CorrelationId,
+    );
+    const serialized = JSON.stringify(mapped);
+
+    expect(mapped.body.error.correlationId).toMatch(CORRELATION_ID_PATTERN);
+    expect(mapped.body.error.correlationId).not.toBe(privateInput);
+    expect(serialized).not.toContain(privateInput);
+    expect(serialized).not.toContain(SECRET);
   });
 
   it("redacts private upstream error details", () => {
@@ -150,7 +239,6 @@ describe("safe public errors", () => {
       new AajError("TRANSCRIPTION_FAILED", {
         cause: new Error(privateDetails),
       }),
-      "aaj-correlation-id",
     );
     const serialized = JSON.stringify(mapped);
 
@@ -163,21 +251,14 @@ describe("safe public errors", () => {
   });
 
   it("maps unknown failures to a stable internal error without raw messages", () => {
-    const mapped = mapErrorToPublicResponse(
-      new Error(`unexpected ${SECRET}`),
-      "aaj-correlation-id",
-    );
+    const mapped = mapErrorToPublicResponse(new Error(`unexpected ${SECRET}`));
 
-    expect(mapped).toEqual({
-      status: 500,
-      body: {
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Something went wrong. Please try again.",
-          retryable: false,
-          correlationId: "aaj-correlation-id",
-        },
-      },
+    expect(mapped.status).toBe(500);
+    expect(mapped.body.error).toEqual({
+      code: "INTERNAL_ERROR",
+      message: "Something went wrong. Please try again.",
+      retryable: false,
+      correlationId: expect.stringMatching(CORRELATION_ID_PATTERN),
     });
     expect(JSON.stringify(mapped)).not.toContain(SECRET);
   });

@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 type ErrorDefinition = Readonly<{
   code: string;
   status: 400 | 413 | 429 | 500 | 502 | 504;
@@ -9,9 +11,7 @@ function freezeErrorDefinitions<
   const T extends {
     readonly [K in keyof T]: ErrorDefinition & Readonly<{ code: K }>;
   },
->(
-  definitions: T,
-): Readonly<T> {
+>(definitions: T): Readonly<T> {
   for (const definition of Object.values(definitions)) Object.freeze(definition);
   return Object.freeze(definitions);
 }
@@ -85,13 +85,30 @@ export const PUBLIC_ERROR_CODES = Object.freeze(
   Object.keys(PUBLIC_ERROR_DEFINITIONS) as PublicErrorCode[],
 );
 
+const publicErrorCodeSet: ReadonlySet<string> = new Set(PUBLIC_ERROR_CODES);
+const CORRELATION_ID_PATTERN = /^aaj_[0-9a-f]{32}$/;
+declare const correlationIdBrand: unique symbol;
+
+export type CorrelationId = string & {
+  readonly [correlationIdBrand]: "CorrelationId";
+};
+
+export function createCorrelationId(): CorrelationId {
+  return `aaj_${randomBytes(16).toString("hex")}` as CorrelationId;
+}
+
 export class AajError extends Error {
-  readonly code: PublicErrorCode;
+  declare readonly code: PublicErrorCode;
 
   constructor(code: PublicErrorCode, options?: ErrorOptions) {
     super(code, options);
     this.name = "AajError";
-    this.code = code;
+    Object.defineProperty(this, "code", {
+      value: code,
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    });
   }
 }
 
@@ -99,7 +116,7 @@ export type PublicError = Readonly<{
   code: PublicErrorCode;
   message: string;
   retryable: boolean;
-  correlationId: string;
+  correlationId: CorrelationId;
 }>;
 
 export type ErrorResponse = Readonly<{
@@ -111,28 +128,38 @@ export type PublicErrorMapping = Readonly<{
   body: ErrorResponse;
 }>;
 
-function isKnownFailure(error: unknown): error is AajError {
-  return error instanceof AajError && error.code in PUBLIC_ERROR_DEFINITIONS;
+function knownFailureCode(error: unknown): PublicErrorCode | null {
+  try {
+    if (!(error instanceof AajError)) return null;
+    const descriptor = Object.getOwnPropertyDescriptor(error, "code");
+    const code = descriptor?.value;
+    return typeof code === "string" && publicErrorCodeSet.has(code)
+      ? (code as PublicErrorCode)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeCorrelationId(correlationId: CorrelationId | undefined): CorrelationId {
+  return typeof correlationId === "string" && CORRELATION_ID_PATTERN.test(correlationId)
+    ? correlationId
+    : createCorrelationId();
 }
 
 export function mapErrorToPublicResponse(
   error: unknown,
-  correlationId: string,
+  correlationId?: CorrelationId,
 ): PublicErrorMapping {
-  const code: PublicErrorCode = isKnownFailure(error)
-    ? error.code
-    : "INTERNAL_ERROR";
+  const code = knownFailureCode(error) ?? "INTERNAL_ERROR";
   const definition = PUBLIC_ERROR_DEFINITIONS[code];
+  const publicError = Object.freeze({
+    code,
+    message: definition.message,
+    retryable: definition.retryable,
+    correlationId: safeCorrelationId(correlationId),
+  });
+  const body = Object.freeze({ error: publicError });
 
-  return {
-    status: definition.status,
-    body: {
-      error: {
-        code,
-        message: definition.message,
-        retryable: definition.retryable,
-        correlationId,
-      },
-    },
-  };
+  return Object.freeze({ status: definition.status, body });
 }

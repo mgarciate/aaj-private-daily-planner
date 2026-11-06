@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { FIXED_TRANSCRIPTION_MODEL } from "../../lib/server/config";
+import { FIXED_TRANSCRIPTION_MODEL } from "../../lib/inference-models";
 import {
   fingerprintCandidate,
   inspectResponseMetadata,

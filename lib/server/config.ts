@@ -1,7 +1,10 @@
-import { AajError } from "./errors";
+import "server-only";
 
-export const VERIFIED_PLANNER_MODEL = "0gm-1.0-35b-a3b" as const;
-export const FIXED_TRANSCRIPTION_MODEL = "whisper-large-v3" as const;
+import {
+  FIXED_TRANSCRIPTION_MODEL,
+  VERIFIED_PLANNER_MODEL,
+} from "../inference-models";
+import { AajError } from "./errors";
 
 export type DemoServerConfig = Readonly<{
   mode: "demo";
@@ -19,19 +22,22 @@ export type RealServerConfig = Readonly<{
 export type ServerConfig = DemoServerConfig | RealServerConfig;
 export type ServerEnvironment = Readonly<Record<string, string | undefined>>;
 
+const zeroGApiKeys = new WeakMap<ValidatedRealServerConfig, string>();
+
 class ValidatedRealServerConfig implements RealServerConfig {
   readonly mode = "real" as const;
   readonly transcriptionModel = FIXED_TRANSCRIPTION_MODEL;
   readonly plannerModel = VERIFIED_PLANNER_MODEL;
-  readonly #zeroGApiKey: string;
 
   constructor(zeroGApiKey: string) {
-    this.#zeroGApiKey = zeroGApiKey;
+    zeroGApiKeys.set(this, zeroGApiKey);
     Object.freeze(this);
   }
 
   getZeroGApiKey(): string {
-    return this.#zeroGApiKey;
+    const apiKey = zeroGApiKeys.get(this);
+    if (apiKey === undefined) configurationError();
+    return apiKey;
   }
 }
 
