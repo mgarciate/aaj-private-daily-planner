@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { FIXED_TRANSCRIPTION_MODEL } from "../../lib/server/config";
 import {
   fingerprintCandidate,
   inspectResponseMetadata,
@@ -6,6 +7,31 @@ import {
 } from "../../lib/server/zero-g-transcription-verifier";
 
 describe("0G transcription verifier", () => {
+  it("always submits the canonical fixed transcription model", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (_input, init) => {
+      const form = init?.body;
+      expect(form).toBeInstanceOf(FormData);
+      expect((form as FormData).get("model")).toBe("whisper-large-v3");
+      return new Response(JSON.stringify({ text: "transcript" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
+
+    expect(FIXED_TRANSCRIPTION_MODEL).toBe("whisper-large-v3");
+    await expect(
+      verifyZeroGTranscription({
+        apiKey: "test-key",
+        audio: new Blob(["audio"], { type: "audio/wav" }),
+        fileName: "fixture.wav",
+        fetchImpl,
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({ model: "whisper-large-v3", status: 200 }),
+    );
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
   it("fails before network I/O when the API key is missing", async () => {
     const fetchImpl = vi.fn<typeof fetch>();
 

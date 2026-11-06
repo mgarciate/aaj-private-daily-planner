@@ -1,13 +1,17 @@
 import { AajError } from "./errors";
 
 export const VERIFIED_PLANNER_MODEL = "0gm-1.0-35b-a3b" as const;
+export const FIXED_TRANSCRIPTION_MODEL = "whisper-large-v3" as const;
 
 export type DemoServerConfig = Readonly<{
   mode: "demo";
+  transcriptionModel: null;
+  plannerModel: null;
 }>;
 
 export type RealServerConfig = Readonly<{
   mode: "real";
+  transcriptionModel: typeof FIXED_TRANSCRIPTION_MODEL;
   plannerModel: typeof VERIFIED_PLANNER_MODEL;
   getZeroGApiKey(): string;
 }>;
@@ -17,6 +21,7 @@ export type ServerEnvironment = Readonly<Record<string, string | undefined>>;
 
 class ValidatedRealServerConfig implements RealServerConfig {
   readonly mode = "real" as const;
+  readonly transcriptionModel = FIXED_TRANSCRIPTION_MODEL;
   readonly plannerModel = VERIFIED_PLANNER_MODEL;
   readonly #zeroGApiKey: string;
 
@@ -43,7 +48,11 @@ export function loadServerConfig(
   }
 
   if (demoMode === "true") {
-    return Object.freeze({ mode: "demo" as const });
+    return Object.freeze({
+      mode: "demo" as const,
+      transcriptionModel: null,
+      plannerModel: null,
+    });
   }
 
   const apiKey = environment.ZERO_G_API_KEY?.trim();
