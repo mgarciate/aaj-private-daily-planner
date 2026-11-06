@@ -1,4 +1,4 @@
-# Aaj
+# Aaj - ETHGlobal Mumbai 2026
 
 **Speak your day. Leave with a plan.**
 
