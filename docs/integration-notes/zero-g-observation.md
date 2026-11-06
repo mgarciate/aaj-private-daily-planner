@@ -19,6 +19,8 @@ Source: https://pc.0g.ai/models/whisper-large-v3
 
 These values remain integration assumptions until observed with the event credentials.
 
+The Router chat-completions documentation states that `x_0g_trace.request_id` is present in Router responses. The verifier treats that nested location as **candidate-only** because the speech endpoint has not yet been observed. Source: https://docs.0g.ai/developer-hub/building-on-0g/compute-network/router/features/chat-completions
+
 ## Safe preflight
 
 1. Store the credential outside the repository in a file readable only by the current user.

@@ -69,6 +69,26 @@ describe("0G transcription verifier", () => {
     expect(metadata.candidateEvidence).toEqual([]);
   });
 
+  it("recognizes the documented 0G trace request ID as candidate evidence", async () => {
+    const metadata = await inspectResponseMetadata(
+      new Response(
+        JSON.stringify({
+          text: "hello",
+          x_0g_trace: { request_id: "trace_secret_value", tee_verified: true },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    expect(metadata.candidateEvidence).toEqual([
+      {
+        source: "body:x_0g_trace.request_id",
+        fingerprint: await fingerprintCandidate("trace_secret_value"),
+      },
+    ]);
+    expect(JSON.stringify(metadata)).not.toContain("trace_secret_value");
+  });
+
   it("does not treat whitespace-only output as a transcript", async () => {
     const metadata = await inspectResponseMetadata(
       new Response(JSON.stringify({ text: "   " }), {

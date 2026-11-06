@@ -23,6 +23,7 @@ const SAFE_BODY_KEYS = new Set([
   "requestId",
   "tee_verified",
   "trace",
+  "x_0g_trace",
 ]);
 
 type JsonObject = Record<string, unknown>;
@@ -105,6 +106,15 @@ export async function inspectResponseMetadata(
   for (const key of CANDIDATE_BODY_KEYS) {
     const value = readNonEmptyString(body, key);
     if (value) candidates.push({ source: `body:${key}`, value });
+  }
+
+  const zeroGTrace = asJsonObject(body?.x_0g_trace);
+  const traceRequestId = readNonEmptyString(zeroGTrace, "request_id");
+  if (traceRequestId) {
+    candidates.push({
+      source: "body:x_0g_trace.request_id",
+      value: traceRequestId,
+    });
   }
 
   return {
