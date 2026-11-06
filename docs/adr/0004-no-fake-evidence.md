@@ -9,7 +9,14 @@ The target 0G prize asks teams to surface request IDs. Internal correlation IDs,
 
 ## Decision
 
-Aaj displays a 0G request ID only when the live provider response returned that exact value in a response location verified during integration. Each ID remains attached to its inference stage. If no ID is returned, Aaj shows “unavailable.”
+Aaj displays a 0G request ID only when the live provider response returned that exact value in a response location verified during integration. The production allowlist is deliberately closed:
+
+- transcription: response header `x-request-id` or response body `x_0g_trace.request_id`;
+- planning: response body `x_0g_trace.request_id` only.
+
+When both transcription locations contain a non-blank string, the provider-specific body location `x_0g_trace.request_id` takes precedence over the generic response header. No other header, top-level ID, legacy candidate name, or structurally similar unknown field is evidence. Each normalized value remains attached to its inference stage and source location. Missing, blank, or non-string values produce the explicit `unavailable` state.
+
+Normalization preserves the provider value exactly; trimming is used only to decide whether it is blank. A fingerprint may be emitted by safe verification tooling, but it is a public diagnostic artifact and never replaces the authentic normalized value inside the server/domain boundary.
 
 Demo mode contains no provider request IDs. It may use a clearly named `sampleRunId` beginning with `demo_`, but the UI never calls that value a request ID, trace, proof, or verified run.
 
