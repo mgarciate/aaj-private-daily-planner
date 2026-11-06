@@ -188,6 +188,8 @@ Paths remain planned until scaffold creation. If the selected framework version 
 
 ### Task 1.3: Implement server configuration and safe errors
 
+**Status:** Completed 2026-11-06. `AAJ_DEMO_MODE` accepts only exact `true`/`false` values, real mode remains the default and fails closed without the server credential or exact verified planner model, and typed failures map to stable redacted public responses.
+
 **Objective:** Guarantee server-only credentials, explicit mode, and safe public errors.
 
 **Future files:**
