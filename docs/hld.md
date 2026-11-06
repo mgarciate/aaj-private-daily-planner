@@ -302,7 +302,7 @@ Do not log audio, transcript, generated plan, authorization headers, multipart b
 | Empty transcript | Could-not-understand message | none | re-record |
 | Planning timeout/error | Planning failed; transcript may be shown for current view only | none | new planning run only if contract safely supports it; otherwise full retry |
 | Invalid model output | Invalid-output message | none | bounded server retry, then user retry |
-| Missing request ID | Plan shown with evidence unavailable | successful plan may persist | not required solely for user value; demo should use a run with evidence for prize proof |
+| Missing request ID | Plan shown with evidence unavailable | successful plan may persist | valid product behavior, but blocks readiness for the selected prize; seek sponsor clarification and do not submit as qualified |
 | Local storage full/blocked | Plan remains in current view; persistence warning | no/partial write rolled back | clear space or continue ephemeral |
 | Corrupt stored data | Recovery notice; preserve raw envelope for export only if safely feasible | no silent overwrite | erase/reset after confirmation |
 

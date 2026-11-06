@@ -35,7 +35,7 @@ The following are design judgments, not sponsor rules:
 
 1. **Optimize for one narratable loop.** “Speak → inspect plan → take first step” is easier to understand and finish than a general assistant.
 2. **Make sponsor use causal.** Without transcription and plan generation, Aaj has no result; 0G therefore sits in the critical path rather than decorating it.
-3. **Keep evidence visible.** The sponsor explicitly asks for request IDs, and winner patterns favor inspectable outputs. Aaj should display authentic IDs or an honest unavailable state.
+3. **Keep evidence visible.** The sponsor explicitly requires request IDs. Aaj should display authentic per-stage IDs; an honest unavailable state is correct product behavior but blocks prize readiness unless the sponsor clarifies otherwise.
 4. **Prefer mobile web.** The winner sample shows visible web/mobile products can communicate value without native-app scope.
 5. **Avoid sponsor stuffing.** A single well-proven 0G integration is more achievable than multiple shallow integrations.
 6. **Make recurrence local and modest.** Date-keyed plans and completion state create a reason to return without accounts, cloud storage, or blockchain scope.

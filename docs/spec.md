@@ -15,7 +15,7 @@ A transcript alone, free-form chat response, more or fewer priorities, or an unv
 
 ## 2. Modes
 
-The API and UI MUST use a discriminated mode: `real` or `demo`.
+Real mode is required. Demo mode is an optional post-critical-path profile. If demo mode is implemented, the API and UI MUST use the discriminated mode `real` or `demo` and every rule in §2.2 applies; if it is cut, demo-only schema, UI, storage, and tests MAY be omitted.
 
 ### 2.1 Real mode
 
@@ -302,13 +302,16 @@ type StoredEnvelopeV1 = {
 - Given provider IDs in observed allowlisted locations, the UI displays the exact values under the correct stages.
 - Given no provider ID for a successful stage, the UI displays unavailable and no replacement identifier.
 
-### Demo integrity
+### Demo integrity (conditional)
+
+These criteria apply only if optional demo mode ships:
 
 - Given demo configuration, no 0G network adapter method is invoked.
 - Every capture, processing, result, and history view visibly states demo mode.
 - Demo responses contain no provider `requestId` key and no non-null model label.
 - Automated copy assertions reject “verified 0G run” and “0G request ID” in demo rendering.
-- Missing real credentials without demo configuration returns `CONFIGURATION_ERROR`.
+
+Whether demo mode ships or not, missing real credentials without explicit demo configuration returns `CONFIGURATION_ERROR`.
 
 ### Validation and failure
 

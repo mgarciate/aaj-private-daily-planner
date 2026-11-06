@@ -94,7 +94,7 @@ A user who prefers no account and wants plan history to remain on the current de
 | FR-07 | Surface only request IDs actually received from 0G, separately for transcription and planning. | Must |
 | FR-08 | Persist structured plans and completion state locally by calendar date. | Must |
 | FR-09 | Provide transcript disclosure, retry, re-record, history, and erase-all controls. | Must |
-| FR-10 | Implement explicit demo mode with persistent labeling and non-provider evidence semantics. | Must |
+| FR-10 | If time permits after the real critical path, implement explicit demo mode with persistent labeling and non-provider evidence semantics. | Could |
 | FR-11 | Support installability as a PWA after the real inference flow is proven. | Should |
 | FR-12 | Show a lightweight locally derived streak only if it does not threaten the critical path. | Could |
 
@@ -172,7 +172,7 @@ The MVP is acceptable only when all are true:
 4. `ZERO_G_API_KEY` is absent from client bundles, browser network responses, repository history, and logs.
 5. Aaj retains no raw audio and no server-side plan history by design; local structured history survives reload.
 6. Completion toggles survive reload and remain associated with the correct local date.
-7. Demo mode is opt-in, persistent in the UI, structurally marked `demo`, and cannot display verified/provider-request evidence.
+7. If demo mode ships, it is opt-in, persistent in the UI, structurally marked `demo`, and cannot display verified/provider-request evidence; demo mode may be cut entirely without blocking MVP acceptance.
 8. Invalid files, denied microphone access, malformed provider output, timeout/network failure, and corrupt local data have tested states.
 9. The critical flow is keyboard accessible and usable at a narrow mobile viewport.
 10. A live deployment, public repository, setup instructions, real evidence capture, and under-three-minute video are added only after they exist and are verified.

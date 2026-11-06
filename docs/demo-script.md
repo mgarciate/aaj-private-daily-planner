@@ -12,7 +12,7 @@
 - [ ] A real test run succeeded immediately before recording.
 - [ ] Microphone permission and file-upload fallback work.
 - [ ] The input contains no private or identifying information.
-- [ ] Evidence panel has the real per-stage IDs returned by 0G, or honestly says unavailable.
+- [ ] Evidence panel has authentic per-stage request IDs returned by 0G. An honest “unavailable” state is valid product behavior but does not meet the published prize requirement; stop and seek sponsor clarification rather than recording a submission-ready demo.
 - [ ] A prior local plan exists only if history is part of the final implementation.
 - [ ] No API key, authorization header, private log, or provider dashboard secret is visible.
 

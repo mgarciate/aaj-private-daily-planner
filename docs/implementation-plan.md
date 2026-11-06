@@ -75,15 +75,16 @@ Paths remain planned until scaffold creation. If the selected framework version 
 
 **TDD/verification steps:**
 
-1. Run scaffold command selected for the current stable Next.js release, proposed:
-   `pnpm create next-app@latest . --ts --eslint --app --src-dir=false --import-alias='@/*'`
-2. Install test dependencies only after confirming versions:
-   `pnpm add -D vitest @testing-library/react @testing-library/jest-dom jsdom`
-3. Add a smoke test that fails because no test setup exists.
-4. Run `pnpm vitest run`; expect the named setup failure.
-5. Add the minimum test configuration; rerun and expect PASS.
-6. Run `pnpm lint && pnpm exec tsc --noEmit && pnpm vitest run`.
-7. Commit: `chore: scaffold Aaj test harness`.
+1. Generate the current stable Next.js scaffold in a temporary sibling directory, not in the non-empty repository:
+   `pnpm create next-app@latest ../aaj-next-scaffold --ts --eslint --app --src-dir=false --import-alias='@/*'`
+2. Copy only the generated application/configuration files into this repository. Preserve and review `README.md`, `docs/`, `.github/`, `LICENSE`, and Git history; inspect the diff before deleting the temporary scaffold.
+3. Install test and script dependencies only after confirming versions:
+   `pnpm add -D vitest @testing-library/react @testing-library/jest-dom jsdom tsx`
+4. Add a smoke test that fails because no test setup exists.
+5. Run `pnpm vitest run`; expect the named setup failure.
+6. Add the minimum test configuration; rerun and expect PASS.
+7. Run `pnpm lint && pnpm exec tsc --noEmit && pnpm vitest run`.
+8. Commit: `chore: scaffold Aaj test harness`.
 
 **Gate:** No product UI beyond framework scaffold; no credential in any file or command history.
 
@@ -101,10 +102,11 @@ Paths remain planned until scaffold creation. If the selected framework version 
 **Steps:**
 
 1. Read current 0G documentation/event instructions and obtain credentials outside Git.
-2. Write a script that prints only: HTTP status, duration, transcript presence/length, model label, response header names safe to reveal, and candidate request-ID location/value with explicit redaction policy. It MUST NOT print authorization, audio, or transcript content.
+2. Write a script that prints only: HTTP status, duration, transcript presence/length, model label, response header names safe to reveal, and candidate request-ID location/presence. Until sensitivity is assessed, print only a redacted preview or fingerprint—not the full candidate value. It MUST NOT print authorization, audio, or transcript content.
 3. Run without `ZERO_G_API_KEY`; expect a deliberate configuration failure before network I/O.
-4. Run with the key supplied through the shell/environment:
-   `ZERO_G_API_KEY=... pnpm tsx scripts/verify-zero-g.ts tests/fixtures/audio/short-multilingual.<ext>`
+4. Load the key from a protected local secret source outside the repository (for example, a `0600` shell environment file sourced without command tracing, or the deployment secret manager), then run:
+   `pnpm tsx scripts/verify-zero-g.ts tests/fixtures/audio/short-multilingual.<ext>`
+   Never paste the literal credential into the command line, shell history, terminal transcript, or issue.
 5. Inspect the actual response. Record endpoint, fields, status, supported format, duration, and evidence location in `docs/integration-notes/zero-g-observation.md`; redact secrets and personal content.
 6. Repeat once to establish that evidence is per-request rather than a constant.
 7. Add a live opt-in contract test at `tests/contract/zero-g-live.test.ts`, skipped unless `RUN_0G_LIVE_TESTS=1`.
@@ -136,7 +138,7 @@ Paths remain planned until scaffold creation. If the selected framework version 
 7. Run `RUN_0G_LIVE_TESTS=1 pnpm vitest run tests/contract/zero-g-live.test.ts`.
 8. Commit: `test: verify 0G planner model contract`.
 
-**Gate B — mandatory:** Both operations complete through 0G, and evidence is either authentically located or explicitly documented as unavailable. No fabricated fallback is permitted.
+**Gate B — mandatory for the selected prize:** Both operations complete through 0G **and authentic request IDs are captured for both stages**. If either endpoint does not return a usable request ID, stop submission-readiness work and obtain sponsor clarification; honest `unavailable` behavior remains valid product behavior but does not satisfy the published prize requirement. No fabricated fallback is permitted.
 
 ## Phase 1 — Domain and server vertical
 
@@ -276,9 +278,9 @@ Paths remain planned until scaffold creation. If the selected framework version 
 4. Test manually on current mobile Safari and Chromium; document actual supported MIME types.
 5. Run unit suite and commit: `feat: capture short voice notes`.
 
-### Task 2.3: Enforce honest demo rendering
+### Task 2.3 (optional, after Gate C): Enforce honest demo rendering
 
-**Objective:** Make simulation impossible to confuse with real inference.
+**Objective:** If time permits, add simulation without allowing it to be confused with real inference. This task is not required for the 0G prize and may be cut in full.
 
 **Future files:**
 
@@ -384,7 +386,7 @@ Paths remain planned until scaffold creation. If the selected framework version 
 7. Run a clean-checkout test against those instructions.
 8. Commit: `docs: document verified deployment and setup`.
 
-**Gate E:** Live URL works with a real 0G run, exact plan schema, honest evidence, secure configuration, and tested mobile fallback. Until this gate passes, submission fields stay TBD.
+**Gate E — mandatory for submission:** Live URL works with a real 0G run, exact plan schema, **authentic per-stage request IDs**, secure configuration, and tested mobile fallback. If authentic IDs cannot be surfaced, the app may still be useful but is not submission-ready for the selected prize until the sponsor clarifies eligibility. Until this gate passes, submission fields stay TBD.
 
 ## Phase 4 — Demo and submission
 
@@ -450,7 +452,10 @@ The deploy key supports Git only, so this repository records issue-ready work wi
 | ID | Proposed issue | Labels | Close when |
 |---|---|---|---|
 | AAJ-04 | Implement strict plan domain schema | `backend`, `test` | Task 1.1 acceptance tests pass |
-| AAJ-05 | Build secure 0G orchestration and API | `backend`, `critical` | Tasks 1.2–1.5 pass; no-store and redaction verified |
+| AAJ-05 | Normalize authentic 0G evidence | `backend`, `security`, `integration` | Task 1.2 tests pass against observed response locations |
+| AAJ-06 | Validate server configuration and safe errors | `backend`, `security` | Task 1.3 tests pass; missing credentials never trigger simulation |
+| AAJ-07 | Orchestrate transcription and planning | `backend`, `critical` | Task 1.4 tests and live contract checks pass |
+| AAJ-08 | Expose the bounded plan API | `backend`, `security` | Task 1.5 tests pass; no-store and redaction verified |
 
 ### Milestone M2 — Mobile MVP
 
@@ -458,9 +463,10 @@ The deploy key supports Git only, so this repository records issue-ready work wi
 
 | ID | Proposed issue | Labels | Close when |
 |---|---|---|---|
-| AAJ-06 | Deliver upload and microphone critical flow | `frontend`, `critical` | Tasks 2.1–2.2 pass on target browsers |
-| AAJ-07 | Enforce demo-mode integrity | `frontend`, `security` | Task 2.3 and prohibited-copy tests pass |
-| AAJ-08 | Persist versioned local history | `frontend`, `storage` | Task 2.4 migration/corruption/privacy tests pass |
+| AAJ-09 | Deliver the upload-first critical flow | `frontend`, `critical` | Task 2.1 passes against the real API |
+| AAJ-10 | Add microphone capture with upload fallback | `frontend` | Task 2.2 passes on target browsers |
+| AAJ-11 | Optionally add honest demo mode | `frontend`, `security` | If selected, Task 2.3 and prohibited-copy tests pass; otherwise close as cut |
+| AAJ-12 | Persist versioned local history | `frontend`, `storage` | Task 2.4 migration/corruption/privacy tests pass |
 
 ### Milestone M3 — Submission ready
 
@@ -468,10 +474,12 @@ The deploy key supports Git only, so this repository records issue-ready work wi
 
 | ID | Proposed issue | Labels | Close when |
 |---|---|---|---|
-| AAJ-09 | Complete accessibility, PWA, and E2E gate | `quality`, `accessibility` | Tasks 3.1–3.3 pass |
-| AAJ-10 | Verify production deployment | `deployment`, `critical` | Task 3.4 evidence note and clean-checkout verification complete |
-| AAJ-11 | Record demo and finalize submission | `docs`, `submission` | Tasks 4.1–4.2 complete and links independently opened |
+| AAJ-13 | Close accessibility states | `quality`, `accessibility` | Task 3.1 passes |
+| AAJ-14 | Add minimal PWA metadata | `frontend`, `quality` | Task 3.2 passes or is explicitly cut |
+| AAJ-15 | Cover the critical flow end to end | `quality`, `test` | Task 3.3 passes |
+| AAJ-16 | Verify production deployment | `deployment`, `critical` | Task 3.4 evidence note and clean-checkout verification complete |
+| AAJ-17 | Record demo and finalize submission | `docs`, `submission` | Tasks 4.1–4.2 complete and links independently opened |
 
 ## Stop conditions and cuts
 
-If time is constrained, cut in this order: animation; streak visualization; install polish; separate settings; audio preview/playback; transcript persistence (already excluded); editing/reordering. Never cut real 0G calls, authentic evidence semantics, explicit demo labeling, input/output validation, upload fallback, secret isolation, or the deployed critical path.
+If time is constrained, cut in this order: demo mode in full; animation; streak visualization; install polish; separate settings; audio preview/playback; transcript persistence (already excluded); editing/reordering. If demo mode ships, its explicit labeling and evidence restrictions are non-negotiable. Never cut real 0G calls, authentic per-stage request IDs required by the selected prize, input/output validation, upload fallback, secret isolation, or the deployed critical path.
