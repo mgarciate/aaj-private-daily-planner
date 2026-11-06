@@ -431,9 +431,9 @@ git status --short
 
 Expected: all quality commands pass; secret searches print nothing; status is clean. Also inspect the built client output for the actual secret value using a safe local script that receives the value from the environment without printing it.
 
-## Backlog and GitHub milestone proposal
+## Backlog and GitHub milestones
 
-The deploy key supports Git only, so this repository records issue-ready work without claiming that issues exist. A controller with GitHub API authentication may create them later. Use `.github/ISSUE_TEMPLATE/` and preserve the IDs/titles below for traceability.
+The planning backlog is tracked as 17 open GitHub Issues under four milestones. Stable work IDs `AAJ-01` through `AAJ-17` map to GitHub Issues [#2](https://github.com/mgarciate/aaj-private-daily-planner/issues/2) through [#18](https://github.com/mgarciate/aaj-private-daily-planner/issues/18), respectively. Use `.github/ISSUE_TEMPLATE/` for follow-up work and preserve the stable IDs below for traceability.
 
 ### Milestone M0 — Real 0G proof
 
