@@ -125,6 +125,57 @@ describe("daily plan schema", () => {
     ).not.toThrow();
   });
 
+  it("ignores a ZWJ whose right side is not an immediate pictographic base", () => {
+    const malformedJoined = "Plan 👩\u200d\ufe0f💻 session";
+    const unjoined = "Plan 👩💻 session";
+
+    expect(normalizePriorityText(malformedJoined)).toBe(normalizePriorityText(unjoined));
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: [malformedJoined, unjoined, "Walk"],
+      }),
+    ).toThrow(PlanValidationError);
+  });
+
+  it("preserves a complete emoji tag sequence in duplicate keys", () => {
+    const blackFlag = "\u{1f3f4}";
+    const englandFlag = `${blackFlag}\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}`;
+
+    expect(normalizePriorityText(englandFlag)).not.toBe(normalizePriorityText(blackFlag));
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: [`Visit ${englandFlag}`, `Visit ${blackFlag}`, "Walk"],
+      }),
+    ).not.toThrow();
+  });
+
+  it("ignores incomplete and unattached emoji tag code points", () => {
+    const blackFlag = "\u{1f3f4}";
+    const unterminatedEnglandFlag = `${blackFlag}\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}`;
+    const unattachedTagSequence = "\u{e0067}\u{e007f}";
+
+    expect(normalizePriorityText(unterminatedEnglandFlag)).toBe(
+      normalizePriorityText(blackFlag),
+    );
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: [unterminatedEnglandFlag, blackFlag, "Walk"],
+      }),
+    ).toThrow(PlanValidationError);
+    expect(() =>
+      parsePlanCandidate({ ...validCandidate, blocker: unattachedTagSequence }),
+    ).toThrow(PlanValidationError);
+    expect(() =>
+      parsePlanCandidate({
+        ...validCandidate,
+        priorities: [`Call${unattachedTagSequence}Sam`, "CallSam", "Walk"],
+      }),
+    ).toThrow(PlanValidationError);
+  });
+
   it("uses lowercase comparison rather than full Unicode case folding", () => {
     expect(() =>
       parsePlanCandidate({

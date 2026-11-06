@@ -40,6 +40,9 @@ const EXTENDED_PICTOGRAPHIC = new RegExp("\\p{Extended_Pictographic}", "u");
 const EMOJI_MODIFIER = new RegExp("\\p{Emoji_Modifier}", "u");
 const WHITE_SPACE = new RegExp("\\p{White_Space}", "gu");
 const EMOJI_VARIATION_SELECTORS = new Set(["\ufe0e", "\ufe0f"]);
+const CANCEL_TAG = 0xe007f;
+const FIRST_EMOJI_TAG_CHARACTER = 0xe0020;
+const LAST_EMOJI_TAG_CHARACTER = 0xe007e;
 
 function invalid(path: PlanValidationPath, message: string): never {
   throw new PlanValidationError(message, path);
@@ -53,21 +56,49 @@ function isEmojiSequenceDecoration(codePoint: string): boolean {
   return EMOJI_MODIFIER.test(codePoint) || EMOJI_VARIATION_SELECTORS.has(codePoint);
 }
 
-function hasExtendedPictographicBase(
+function hasExtendedPictographicBaseBefore(
   codePoints: string[],
   startIndex: number,
-  direction: -1 | 1,
 ): boolean {
-  for (
-    let index = startIndex;
-    index >= 0 && index < codePoints.length;
-    index += direction
-  ) {
+  for (let index = startIndex; index >= 0; index -= 1) {
     const codePoint = codePoints[index];
     if (EXTENDED_PICTOGRAPHIC.test(codePoint)) return true;
     if (!isEmojiSequenceDecoration(codePoint)) return false;
   }
   return false;
+}
+
+function codePointValue(codePoint: string): number {
+  return codePoint.codePointAt(0) ?? -1;
+}
+
+function isEmojiTagCharacter(codePoint: string): boolean {
+  const value = codePointValue(codePoint);
+  return value >= FIRST_EMOJI_TAG_CHARACTER && value <= LAST_EMOJI_TAG_CHARACTER;
+}
+
+/** Returns only indexes belonging to complete, bounded emoji tag sequences. */
+function findValidEmojiTagCodePoints(codePoints: string[]): Set<number> {
+  const validIndexes = new Set<number>();
+
+  for (let baseIndex = 0; baseIndex < codePoints.length; baseIndex += 1) {
+    if (!EXTENDED_PICTOGRAPHIC.test(codePoints[baseIndex])) continue;
+
+    let index = baseIndex + 1;
+    if (index >= codePoints.length || !isEmojiTagCharacter(codePoints[index])) continue;
+    while (index < codePoints.length && isEmojiTagCharacter(codePoints[index])) {
+      index += 1;
+    }
+
+    if (index < codePoints.length && codePointValue(codePoints[index]) === CANCEL_TAG) {
+      for (let validIndex = baseIndex + 1; validIndex <= index; validIndex += 1) {
+        validIndexes.add(validIndex);
+      }
+      baseIndex = index;
+    }
+  }
+
+  return validIndexes;
 }
 
 /**
@@ -76,13 +107,17 @@ function hasExtendedPictographicBase(
  */
 function visibleTextKey(text: string): string {
   const codePoints = Array.from(text);
+  const validEmojiTagCodePoints = findValidEmojiTagCodePoints(codePoints);
   return codePoints
     .filter((codePoint, index) => {
       if (!DEFAULT_IGNORABLE.test(codePoint)) return true;
 
+      if (validEmojiTagCodePoints.has(index)) return true;
+
       if (codePoint === "\u200d") {
-        return hasExtendedPictographicBase(codePoints, index - 1, -1) &&
-          hasExtendedPictographicBase(codePoints, index + 1, 1);
+        return hasExtendedPictographicBaseBefore(codePoints, index - 1) &&
+          index + 1 < codePoints.length &&
+          EXTENDED_PICTOGRAPHIC.test(codePoints[index + 1]);
       }
       const previous = codePoints[index - 1];
       return EMOJI_VARIATION_SELECTORS.has(codePoint) &&
